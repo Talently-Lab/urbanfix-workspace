@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -10,4 +5,72 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Rol {
+  TECNICO
+  ADMINISTRADOR
+  CLIENTE
+}
+
+enum EstadoSolicitud {
+  PENDIENTE
+  ACEPTADA
+  EN_PROGRESO
+  COMPLETADA
+  RECHAZADA
+  CANCELADA
+}
+
+model Usuario {
+  idUsuario      Int      @id @default(autoincrement())
+  nombre         String
+  apellido       String
+  rol            Rol
+  email          String   @unique
+  password       String
+  numeroTelefono String?
+  fechaCreacion  DateTime @default(now())
+
+  solicitudesComoCliente Solicitud[]       @relation("ClienteSolicitudes")
+  solicitudesComoTecnico Solicitud[]       @relation("TecnicoSolicitudes")
+  serviciosOfrecidos     TecnicoServicio[]
+}
+
+model Servicio {
+  idServicio     Int    @id @default(autoincrement())
+  nombreServicio String
+  descripcion    String
+
+  solicitudes Solicitud[]
+  tecnicos    TecnicoServicio[]
+}
+
+model TecnicoServicio {
+  idTecnico  Int
+  idServicio Int
+
+  tecnico  Usuario  @relation(fields: [idTecnico], references: [idUsuario])
+  servicio Servicio @relation(fields: [idServicio], references: [idServicio])
+
+  @@id([idTecnico, idServicio])
+}
+
+model Solicitud {
+  idSolicitud Int             @id @default(autoincrement())
+  detalle     String
+  estado      EstadoSolicitud @default(PENDIENTE)
+
+  idCliente Int
+  cliente   Usuario @relation("ClienteSolicitudes", fields: [idCliente], references: [idUsuario])
+
+  idServicio Int
+  servicio   Servicio @relation(fields: [idServicio], references: [idServicio])
+
+  idTecnico Int?
+  tecnico   Usuario? @relation("TecnicoSolicitudes", fields: [idTecnico], references: [idUsuario])
+
+  fechaCreacion     DateTime  @default(now())
+  fechaFinalizacion DateTime?
 }
