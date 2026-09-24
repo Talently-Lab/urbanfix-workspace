@@ -36,6 +36,7 @@ model Usuario {
   solicitudesComoCliente Solicitud[]       @relation("ClienteSolicitudes")
   solicitudesComoTecnico Solicitud[]       @relation("TecnicoSolicitudes")
   serviciosOfrecidos     TecnicoServicio[]
+  eventos Evento[]
 }
 
 model Servicio {
@@ -73,4 +74,18 @@ model Solicitud {
 
   fechaCreacion     DateTime  @default(now())
   fechaFinalizacion DateTime?
+
+  eventos Evento[]
+}
+
+model Evento {
+  idEvento     Int      @id @default(autoincrement())
+  nombreEvento String
+  fechaHora    DateTime @default(now())
+
+  idUsuario Int
+  usuario   Usuario @relation(fields: [idUsuario], references: [idUsuario])
+
+  idSolicitud Int?
+  solicitud   Solicitud? @relation(fields: [idSolicitud], references: [idSolicitud])
 }
