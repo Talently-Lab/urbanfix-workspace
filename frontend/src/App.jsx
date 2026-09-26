@@ -1,10 +1,42 @@
+import { Route, Routes } from 'react-router-dom'
+
+//Paginas Utilizadas
+import Technician from './pages/Technician'
+import Login from './pages/Login'
+import Client from './pages/Client'
+import Admin from './pages/Admin'
+import ProtectedRoute from './Components/ProtectedRoute'
 function App() {
   return (
-    <div className="min-h-screen bg-blue-100 flex items-center justify-center">
-      <h1 className="text-4xl font-bold text-blue-700">
-        UrbanFix Solutions 🚀
-      </h1>
-    </div>
+      <Routes>
+        <Route path='*' element={<Login></Login>}/>
+        
+        <Route
+  path="/Client"
+  element={
+    <ProtectedRoute allowedRole="client">
+      <Client />
+    </ProtectedRoute>
+  }
+/>
+        <Route
+  path="/Technician"
+  element={
+    <ProtectedRoute allowedRole="technician">
+      <Technician />
+    </ProtectedRoute>
+  }
+/>
+        <Route
+  path="/Admin"
+  element={
+    <ProtectedRoute allowedRole="admin">
+      <Admin />
+    </ProtectedRoute>
+  }
+/>
+      </Routes>
+
   )
 }
 
