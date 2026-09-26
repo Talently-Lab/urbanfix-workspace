@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuthContext } from '../context/UserContext'
+import { useAuth } from '../context/AuthContext'
 
 function Login() {
   const [email, setEmail] = useState('')
@@ -8,21 +8,29 @@ function Login() {
   const [role, setRole] = useState('client')
 
   const navigate = useNavigate()
-  const { iniciarSesion } = useAuthContext()
+  const { login } = useAuth()
 
   const getLogin = (e) => {
-    e.preventDefault()
+  e.preventDefault()
 
-    iniciarSesion(email, password, role)
-
-    if (role === 'client') {
-      navigate('/Client')
-    } else if (role === 'admin') {
-      navigate('/Admin')
-    } else if (role === 'technician') {
-  navigate('/Technician')
-}
+  const userData = {
+    id: 1,
+    email: email,
+    role: role
   }
+
+  const authToken = 'mock-token'
+
+  login(userData, authToken)
+
+  if (role === 'client') {
+    navigate('/Client')
+  } else if (role === 'admin') {
+    navigate('/Admin')
+  } else if (role === 'technician') {
+    navigate('/Technician')
+  }
+}
 
   return (
     <div>
