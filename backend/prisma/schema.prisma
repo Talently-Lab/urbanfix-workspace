@@ -5,7 +5,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum Rol {
@@ -74,6 +73,7 @@ model Solicitud {
 
   fechaCreacion     DateTime  @default(now())
   fechaFinalizacion DateTime?
+  fechaAceptacion   DateTime?
 
   eventos Evento[]
 }
@@ -86,6 +86,6 @@ model Evento {
   idUsuario Int
   usuario   Usuario @relation(fields: [idUsuario], references: [idUsuario])
 
-  idSolicitud Int?
-  solicitud   Solicitud? @relation(fields: [idSolicitud], references: [idSolicitud])
+  idSolicitud Int
+  solicitud   Solicitud @relation(fields: [idSolicitud], references: [idSolicitud])
 }
