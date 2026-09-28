@@ -6,16 +6,13 @@ import Login from './pages/Login'
 import Client from './pages/Client'
 import Admin from './pages/Admin'
 import ProtectedRoute from './Components/ProtectedRoute'
-import Home from './pages/Home'
-import Navbar from './Components/Navbar'
 function App() {
   return (
-      <div>
-        <Navbar/>
-         <Routes>
-        <Route path='*' element={<Home></Home>}/>
-        <Route path='/Login' element={<Login></Login>}/>
-        <Route path="/Client"
+      <Routes>
+        <Route path='*' element={<Login></Login>}/>
+        
+        <Route
+  path="/Client"
   element={
     <ProtectedRoute allowedRole="client">
       <Client />
@@ -40,8 +37,6 @@ function App() {
 />
       </Routes>
 
-      </div>
-     
   )
 }
 
