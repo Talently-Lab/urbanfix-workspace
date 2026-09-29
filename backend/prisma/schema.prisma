@@ -22,6 +22,15 @@ enum EstadoSolicitud {
   CANCELADA
 }
 
+enum TipoEvento {
+  SOLICITUD_CREADA
+  SOLICITUD_ACEPTADA
+  SOLICITUD_RECHAZADA
+  SOLICITUD_EN_PROGRESO
+  SOLICITUD_COMPLETADA
+  SOLICITUD_CANCELADA
+}
+
 model Usuario {
   idUsuario      Int      @id @default(autoincrement())
   nombre         String
@@ -35,6 +44,7 @@ model Usuario {
   solicitudesComoCliente Solicitud[]       @relation("ClienteSolicitudes")
   solicitudesComoTecnico Solicitud[]       @relation("TecnicoSolicitudes")
   serviciosOfrecidos     TecnicoServicio[]
+  eventos Evento[]
 }
 
 model Servicio {
@@ -72,4 +82,19 @@ model Solicitud {
 
   fechaCreacion     DateTime  @default(now())
   fechaFinalizacion DateTime?
+  fechaAceptacion   DateTime?
+
+  eventos Evento[]
+}
+
+model Evento {
+  idEvento     Int      @id @default(autoincrement())
+  nombreEvento TipoEvento
+  fechaHora    DateTime @default(now())
+
+  idUsuario Int
+  usuario   Usuario @relation(fields: [idUsuario], references: [idUsuario])
+
+  idSolicitud Int
+  solicitud   Solicitud @relation(fields: [idSolicitud], references: [idSolicitud])
 }
