@@ -94,3 +94,65 @@ exports.register = async (req, res) => {
     });
   }
 };
+
+exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        error: 'Email y contraseña son requeridos'
+      });
+    }
+
+    const usuario = await prisma.usuario.findUnique({
+      where: { email }
+    });
+
+    if (!usuario) {
+      return res.status(401).json({
+        error: 'Email o contraseña incorrectos'
+      });
+    }
+
+    const passwordValida = await bcrypt.compare(
+      password,
+      usuario.password
+    );
+
+    if (!passwordValida) {
+      return res.status(401).json({
+        error: 'Email o contraseña incorrectos'
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        userId: usuario.idUsuario,
+        role: usuario.rol
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: '7d'
+      }
+    );
+
+    res.json({
+      usuario: {
+        idUsuario: usuario.idUsuario,
+        email: usuario.email,
+        nombre: usuario.nombre,
+        apellido: usuario.apellido,
+        rol: usuario.rol,
+        numeroTelefono: usuario.numeroTelefono
+      },
+      token
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      error: 'Error interno del servidor'
+    });
+  }
+};
