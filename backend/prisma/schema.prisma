@@ -22,6 +22,15 @@ enum EstadoSolicitud {
   CANCELADA
 }
 
+enum TipoEvento {
+  SOLICITUD_CREADA
+  SOLICITUD_ACEPTADA
+  SOLICITUD_RECHAZADA
+  SOLICITUD_EN_PROGRESO
+  SOLICITUD_COMPLETADA
+  SOLICITUD_CANCELADA
+}
+
 model Usuario {
   idUsuario      Int      @id @default(autoincrement())
   nombre         String
@@ -80,7 +89,7 @@ model Solicitud {
 
 model Evento {
   idEvento     Int      @id @default(autoincrement())
-  nombreEvento String
+  nombreEvento TipoEvento
   fechaHora    DateTime @default(now())
 
   idUsuario Int
