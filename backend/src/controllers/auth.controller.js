@@ -126,6 +126,11 @@ exports.login = async (req, res) => {
       });
     }
 
+    await prisma.usuario.update({
+      where: { idUsuario: usuario.idUsuario },
+      data: { ultimoLogin: new Date() }
+    });
+
     const token = jwt.sign(
       {
         userId: usuario.idUsuario,
