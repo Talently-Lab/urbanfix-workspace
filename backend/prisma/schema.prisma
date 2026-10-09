@@ -39,6 +39,8 @@ model Usuario {
   password       String
   numeroTelefono String?
   fechaCreacion  DateTime @default(now())
+  ultimoLogin    DateTime?
+  usuarioDePrueba     Boolean  @default(false)
 
   solicitudesComoCliente Solicitud[]       @relation("ClienteSolicitudes")
   solicitudesComoTecnico Solicitud[]       @relation("TecnicoSolicitudes")
