@@ -1,4 +1,11 @@
 @import "tailwindcss";
+
+@theme{
+  --color-urban-button: #F26B4D;
+  --color-urban-fondo: #08284F;
+
+}
+
 :root {
   --text: #6b6375;
   --text-h: #08060d;
