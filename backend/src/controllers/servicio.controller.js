@@ -14,7 +14,7 @@ exports.getAll = async (req, res) => {
       select: { idServicio: true, nombreServicio: true, descripcion: true },
       orderBy: { nombreServicio: 'asc' }
     });
-    res.json(servicios);
+    res.json({ servicios });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error al obtener los servicios' });
