@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 import Header from "../../Components/Header";
+import SolicitudCard from "../Cliente/SolicitudCard";
 
 function Dashboard() {
   const { token } = useAuth();
@@ -132,8 +133,6 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      {/* Encabezado */}
-      <Header></Header>
 
       <main className="mx-auto max-w-7xl px-6 py-8">
         {/* Resumen */}
@@ -215,85 +214,10 @@ function Dashboard() {
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
               {solicitudes.map((solicitud) => (
-                <article
-                  key={solicitud.idSolicitud}
-                  className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-cyan-700">
-                        {solicitud.servicio?.nombreServicio ||
-                          "Servicio"}
-                      </p>
-
-                      <h3 className="mt-2 text-lg font-bold text-slate-900">
-                        Solicitud #{solicitud.idSolicitud}
-                      </h3>
-                    </div>
-
-                    <span className="shrink-0 rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-800">
-                      {solicitud.estado}
-                    </span>
-                  </div>
-
-                  <div className="my-5 flex-1 space-y-4">
-                    <div>
-                      <p className="text-xs font-semibold uppercase text-slate-400">
-                        Descripción
-                      </p>
-
-                      <p className="mt-1 whitespace-pre-line text-sm leading-6 text-slate-700">
-                        {solicitud.detalle || "Sin descripción"}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-xs font-semibold uppercase text-slate-400">
-                        Cliente
-                      </p>
-
-                      <p className="mt-1 text-sm font-medium text-slate-700">
-                        {solicitud.cliente?.nombre || "No especificado"}
-                        {solicitud.cliente?.apellido
-                          ? ` ${solicitud.cliente.apellido}`
-                          : ""}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Acciones solo para solicitudes pendientes */}
-                  {solicitud.estado === "PENDIENTE" ? (
-                    <div className="mt-4 flex gap-3 border-t border-slate-100 pt-4">
-                      <button
-                        onClick={() =>
-                          handleAceptar(solicitud.idSolicitud)
-                        }
-                        disabled={procesando !== null}
-                        className="flex-1 rounded-lg bg-emerald-600 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {procesando === solicitud.idSolicitud
-                          ? "Procesando..."
-                          : "Aceptar"}
-                      </button>
-
-                      <button
-                        onClick={() =>
-                          handleRechazar(solicitud.idSolicitud)
-                        }
-                        disabled={procesando !== null}
-                        className="flex-1 rounded-lg border border-red-200 bg-white px-3 py-2.5 text-sm font-bold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        Rechazar
-                      </button>
-                    </div>
-                  ) : (
-                    <p className="mt-4 border-t border-slate-100 pt-4 text-sm text-slate-500">
-                      Esta solicitud ya no está pendiente.
-                    </p>
-                  )}
-                </article>
+                <SolicitudCard className=''  key={solicitud.id} solicitud={solicitud} />
               ))}
             </div>
+
           </section>
         )}
       </main>
