@@ -1,9 +1,12 @@
 @import "tailwindcss";
 
-@theme{
-  --color-urban-button: #F26B4D;
-  --color-urban-fondo: #08284F;
 
+@theme{
+  --color-urban-button: #F26B4D; 
+  --color-urban-principal: #08284F; /*Azul Marino*/
+  --color-urban-secundario: #F26B4D;/*Naranja coral*/
+  --color-urban-fondo: #F1F6FA;/*Celeste grisáceo*/
+  --color-urban-texto-secundario: #64748B;/*Gris azulado*/
 }
 
 :root {
