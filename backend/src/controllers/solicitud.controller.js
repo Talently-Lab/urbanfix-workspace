@@ -28,16 +28,28 @@ exports.create = async (req, res) => {
       return res.status(404).json({ error: 'El servicio no existe' });
     }
 
-    const solicitud = await prisma.solicitud.create({
-      data: {
-        detalle,
-        idServicio: servicio.idServicio,
-        idCliente: getIdUsuario(req)
-      },
-      include: {
-        servicio: { select: { nombreServicio: true } },
-        cliente: { select: { nombre: true, apellido: true, numeroTelefono: true } }
-      }
+    const solicitud = await prisma.$transaction(async (tx) => {
+      const nueva = await tx.solicitud.create({
+        data: {
+          detalle,
+          idServicio: servicio.idServicio,
+          idCliente: getIdUsuario(req)
+        },
+        include: {
+          servicio: { select: { nombreServicio: true } },
+          cliente: { select: { nombre: true, apellido: true, numeroTelefono: true } }
+        }
+      });
+
+      await tx.evento.create({
+        data: {
+          nombreEvento: 'SOLICITUD_CREADA',
+          idUsuario: getIdUsuario(req),
+          idSolicitud: nueva.idSolicitud
+        }
+      });
+
+      return nueva;
     });
 
     res.status(201).json(solicitud);
@@ -144,5 +156,69 @@ exports.aceptar = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error al aceptar la solicitud' });
+  }
+};
+
+// PATCH /api/solicitudes/:id/rechazar  (TECNICO)
+exports.rechazar = async (req, res) => {
+  try {
+    const idSolicitud = Number(req.params.id);
+    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+      return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
+    }
+    const idTecnico = getIdUsuario(req);
+
+    const solicitud = await prisma.solicitud.findUnique({ where: { idSolicitud } });
+    if (!solicitud) {
+      return res.status(404).json({ error: 'La solicitud no existe' });
+    }
+
+    const ofreceServicio = await prisma.tecnicoServicio.findUnique({
+      where: { idTecnico_idServicio: { idTecnico, idServicio: solicitud.idServicio } }
+    });
+    if (!ofreceServicio) {
+      return res.status(403).json({ error: 'No ofrecés el servicio de esta solicitud' });
+    }
+
+    if (solicitud.estado !== 'PENDIENTE') {
+      return res.status(409).json({ error: 'La solicitud ya no está pendiente' });
+    }
+
+    const yaRechazo = await prisma.evento.findFirst({
+      where: { idSolicitud, idUsuario: idTecnico, nombreEvento: 'SOLICITUD_RECHAZADA' }
+    });
+    if (yaRechazo) {
+      return res.status(409).json({ error: 'Ya rechazaste esta solicitud' });
+    }
+
+    const resultado = await prisma.$transaction(async (tx) => {
+      await tx.evento.create({
+        data: { nombreEvento: 'SOLICITUD_RECHAZADA', idUsuario: idTecnico, idSolicitud }
+      });
+
+      const elegibles = await tx.tecnicoServicio.count({
+        where: { idServicio: solicitud.idServicio }
+      });
+      const rechazos = await tx.evento.count({
+        where: { idSolicitud, nombreEvento: 'SOLICITUD_RECHAZADA' }
+      });
+
+      if (rechazos >= elegibles) {
+        await tx.solicitud.updateMany({
+          where: { idSolicitud, estado: 'PENDIENTE' },
+          data: { estado: 'RECHAZADA' }
+        });
+      }
+
+      return tx.solicitud.findUnique({
+        where: { idSolicitud },
+        select: { idSolicitud: true, estado: true }
+      });
+    });
+
+    res.json({ mensaje: 'Rechazo registrado', solicitud: resultado });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al rechazar la solicitud' });
   }
 };
