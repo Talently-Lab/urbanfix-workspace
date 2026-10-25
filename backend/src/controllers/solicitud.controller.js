@@ -222,3 +222,27 @@ exports.rechazar = async (req, res) => {
     res.status(500).json({ error: 'Error al rechazar la solicitud' });
   }
 };
+
+// GET /api/solicitudes/asignadas  (TECNICO)
+exports.getAsignadas = async (req, res) => {
+  try {
+    const solicitudes = await prisma.solicitud.findMany({
+      where: { idTecnico: getIdUsuario(req) },
+      select: {
+        idSolicitud: true,
+        detalle: true,
+        estado: true,
+        fechaCreacion: true,
+        fechaAceptacion: true,
+        fechaFinalizacion: true,
+        servicio: { select: { idServicio: true, nombreServicio: true } },
+        cliente: { select: { idUsuario: true, nombre: true, apellido: true, numeroTelefono: true } }
+      },
+      orderBy: { fechaAceptacion: 'desc' }
+    });
+    res.json({ solicitudes });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al obtener tus solicitudes asignadas' });
+  }
+};

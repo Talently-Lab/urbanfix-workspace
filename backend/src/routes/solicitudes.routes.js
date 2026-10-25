@@ -11,7 +11,7 @@ router.use(authenticate);
 router.get('/', authorize('TECNICO'), solicitudController.getDisponibles);
 router.post('/', authorize('CLIENTE'), solicitudController.create);
 router.get('/mias', authorize('CLIENTE'), solicitudController.getMias);
-router.get('/asignadas', authorize('TECNICO'), notImplemented);
+router.get('/asignadas', authorize('TECNICO'), solicitudController.getAsignadas);
 
 // Rutas con :id
 router.get('/:id', notImplemented);
