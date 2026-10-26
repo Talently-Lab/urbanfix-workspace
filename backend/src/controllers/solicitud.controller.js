@@ -261,8 +261,9 @@ exports.iniciar = async (req, res) => {
       return res.status(404).json({ error: 'La solicitud no existe' });
     }
     if (solicitud.idTecnico !== idTecnico) {
-      return res.status(403).json({ error: 'La solicitud no está asignada a vos' });
+      return res.status(403).json({ error: 'La solicitud no está asignada al técnico indicado' });
     }
+
 
     const resultado = await prisma.$transaction(async (tx) => {
       const actualizadas = await tx.solicitud.updateMany({
@@ -291,3 +292,47 @@ exports.iniciar = async (req, res) => {
   }
 };
 
+// PATCH /api/solicitudes/:id/completar  (TECNICO asignado)
+exports.completar = async (req, res) => {
+  try {
+    const idSolicitud = Number(req.params.id);
+    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+      return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
+    }
+    const idTecnico = getIdUsuario(req);
+
+    const solicitud = await prisma.solicitud.findUnique({ where: { idSolicitud } });
+    if (!solicitud) {
+      return res.status(404).json({ error: 'La solicitud no existe' });
+    }
+    if (solicitud.idTecnico !== idTecnico) {
+      return res.status(403).json({ error: 'La solicitud no está asignada al técnico indicado' });
+    }
+
+
+    const resultado = await prisma.$transaction(async (tx) => {
+      const actualizadas = await tx.solicitud.updateMany({
+        where: { idSolicitud, idTecnico, estado: 'EN_PROGRESO' },
+        data: { estado: 'COMPLETADA', fechaFinalizacion: new Date() }
+      });
+      if (actualizadas.count === 0) return null;
+
+      await tx.evento.create({
+        data: { nombreEvento: 'SOLICITUD_COMPLETADA', idUsuario: idTecnico, idSolicitud }
+      });
+
+      return tx.solicitud.findUnique({
+        where: { idSolicitud },
+        select: { idSolicitud: true, estado: true, fechaFinalizacion: true }
+      });
+    });
+
+    if (!resultado) {
+      return res.status(409).json({ error: 'La solicitud no está en estado EN_PROGRESO' });
+    }
+    res.json({ mensaje: 'Solicitud completada', solicitud: resultado });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al completar la solicitud' });
+  }
+};
