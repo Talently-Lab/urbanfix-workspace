@@ -10,7 +10,7 @@ const router = express.Router();
 router.use(authenticate, authorize('ADMINISTRADOR'));
 
 router.get('/usuarios', adminController.getUsuarios);
-router.get('/solicitudes', notImplemented);
+router.get('/solicitudes', adminController.getSolicitudes);
 router.post('/servicios', notImplemented);
 router.patch('/servicios/:id', notImplemented);
 router.delete('/servicios/:id', notImplemented);
