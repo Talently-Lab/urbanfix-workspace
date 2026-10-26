@@ -18,7 +18,7 @@ router.get('/:id', notImplemented);
 router.get('/:id/eventos', notImplemented);
 router.patch('/:id/aceptar', authorize('TECNICO'), solicitudController.aceptar);
 router.patch('/:id/rechazar', authorize('TECNICO'), solicitudController.rechazar);
-router.patch('/:id/iniciar', authorize('TECNICO'), notImplemented);
+router.patch('/:id/iniciar', authorize('TECNICO'), solicitudController.iniciar);
 router.patch('/:id/completar', authorize('TECNICO'), notImplemented);
 router.patch('/:id/cancelar', authorize('CLIENTE', 'TECNICO'), notImplemented);
 

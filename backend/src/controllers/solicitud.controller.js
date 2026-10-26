@@ -246,3 +246,48 @@ exports.getAsignadas = async (req, res) => {
     res.status(500).json({ error: 'Error al obtener tus solicitudes asignadas' });
   }
 };
+
+// PATCH /api/solicitudes/:id/iniciar  (TECNICO asignado)
+exports.iniciar = async (req, res) => {
+  try {
+    const idSolicitud = Number(req.params.id);
+    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+      return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
+    }
+    const idTecnico = getIdUsuario(req);
+
+    const solicitud = await prisma.solicitud.findUnique({ where: { idSolicitud } });
+    if (!solicitud) {
+      return res.status(404).json({ error: 'La solicitud no existe' });
+    }
+    if (solicitud.idTecnico !== idTecnico) {
+      return res.status(403).json({ error: 'La solicitud no está asignada a vos' });
+    }
+
+    const resultado = await prisma.$transaction(async (tx) => {
+      const actualizadas = await tx.solicitud.updateMany({
+        where: { idSolicitud, idTecnico, estado: 'ACEPTADA' },
+        data: { estado: 'EN_PROGRESO' }
+      });
+      if (actualizadas.count === 0) return null;
+
+      await tx.evento.create({
+        data: { nombreEvento: 'SOLICITUD_EN_PROGRESO', idUsuario: idTecnico, idSolicitud }
+      });
+
+      return tx.solicitud.findUnique({
+        where: { idSolicitud },
+        select: { idSolicitud: true, estado: true }
+      });
+    });
+
+    if (!resultado) {
+      return res.status(409).json({ error: 'La solicitud no está en estado ACEPTADA' });
+    }
+    res.json({ mensaje: 'Solicitud en progreso', solicitud: resultado });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al iniciar la solicitud' });
+  }
+};
+
