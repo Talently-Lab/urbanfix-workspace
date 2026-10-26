@@ -69,3 +69,47 @@ exports.getSolicitudes = async (req, res) => {
     res.status(500).json({ error: 'Error al obtener las solicitudes' });
   }
 };
+
+// PATCH /api/admin/solicitudes/:id/cancelar  (ADMINISTRADOR)
+exports.cancelarSolicitud = async (req, res) => {
+  try {
+    const idSolicitud = Number(req.params.id);
+    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+      return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
+    }
+
+    const solicitud = await prisma.solicitud.findUnique({ where: { idSolicitud } });
+    if (!solicitud) {
+      return res.status(404).json({ error: 'La solicitud no existe' });
+    }
+
+    const resultado = await prisma.$transaction(async (tx) => {
+      const actualizadas = await tx.solicitud.updateMany({
+        where: { idSolicitud, estado: { in: ['PENDIENTE', 'ACEPTADA'] } },
+        data: { estado: 'CANCELADA' }
+      });
+      if (actualizadas.count === 0) return null;
+
+      await tx.evento.create({
+        data: {
+          nombreEvento: 'SOLICITUD_CANCELADA',
+          idUsuario: req.user.userId,
+          idSolicitud
+        }
+      });
+
+      return tx.solicitud.findUnique({
+        where: { idSolicitud },
+        select: { idSolicitud: true, estado: true }
+      });
+    });
+
+    if (!resultado) {
+      return res.status(409).json({ error: 'La solicitud no se puede cancelar en su estado actual' });
+    }
+    res.json({ mensaje: 'Solicitud cancelada', solicitud: resultado });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al cancelar la solicitud' });
+  }
+};

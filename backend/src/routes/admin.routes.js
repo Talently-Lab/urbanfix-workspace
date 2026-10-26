@@ -14,5 +14,6 @@ router.get('/solicitudes', adminController.getSolicitudes);
 router.post('/servicios', notImplemented);
 router.patch('/servicios/:id', notImplemented);
 router.delete('/servicios/:id', notImplemented);
+router.patch('/solicitudes/:id/cancelar', adminController.cancelarSolicitud);
 
 module.exports = router;
