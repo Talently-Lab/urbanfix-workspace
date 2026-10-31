@@ -231,6 +231,7 @@ exports.getAsignadas = async (req, res) => {
       select: {
         idSolicitud: true,
         detalle: true,
+        direccion: true,
         estado: true,
         fechaCreacion: true,
         fechaAceptacion: true,
@@ -434,6 +435,7 @@ exports.getById = async (req, res) => {
       solicitud: {
         idSolicitud: solicitud.idSolicitud,
         detalle: solicitud.detalle,
+        direccion: solicitud.direccion,
         estado: solicitud.estado,
         servicio: solicitud.servicio,
         cliente: solicitud.cliente,
