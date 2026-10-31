@@ -126,10 +126,15 @@ exports.login = async (req, res) => {
       });
     }
 
-    await prisma.usuario.update({
-      where: { idUsuario: usuario.idUsuario },
-      data: { ultimoLogin: new Date() }
-    });
+    await prisma.$transaction([
+      prisma.usuario.update({
+        where: { idUsuario: usuario.idUsuario },
+        data: { ultimoLogin: new Date() }
+      }),
+      prisma.evento.create({
+        data: { nombreEvento: 'LOGIN_EXITOSO', idUsuario: usuario.idUsuario }
+      })
+    ]);
 
     const token = jwt.sign(
       {
