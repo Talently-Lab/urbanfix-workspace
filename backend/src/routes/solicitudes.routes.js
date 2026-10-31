@@ -14,7 +14,7 @@ router.get('/mias', authorize('CLIENTE'), solicitudController.getMias);
 router.get('/asignadas', authorize('TECNICO'), solicitudController.getAsignadas);
 
 // Rutas con :id
-router.get('/:id', notImplemented);
+router.get('/:id', solicitudController.getById);
 router.get('/:id/eventos', notImplemented);
 router.patch('/:id/aceptar', authorize('TECNICO'), solicitudController.aceptar);
 router.patch('/:id/rechazar', authorize('TECNICO'), solicitudController.rechazar);

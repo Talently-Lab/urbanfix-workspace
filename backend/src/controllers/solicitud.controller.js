@@ -383,3 +383,69 @@ exports.cancelar = async (req, res) => {
     res.status(500).json({ error: 'Error al cancelar la solicitud' });
   }
 };
+
+// GET /api/solicitudes/:id  (CLIENTE dueño, TECNICO asignado o elegible, ADMINISTRADOR)
+exports.getById = async (req, res) => {
+  try {
+    const idSolicitud = Number(req.params.id);
+    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+      return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
+    }
+    const idUsuario = getIdUsuario(req);
+    const rol = req.user.role;
+
+    const solicitud = await prisma.solicitud.findUnique({
+      where: { idSolicitud },
+      include: {
+        servicio: { select: { idServicio: true, nombreServicio: true } },
+        cliente: { select: { idUsuario: true, nombre: true } },
+        tecnico: { select: { idUsuario: true, nombre: true } }
+      }
+    });
+    if (!solicitud) {
+      return res.status(404).json({ error: 'La solicitud no existe' });
+    }
+
+    let autorizado = false;
+    if (rol === 'ADMINISTRADOR') {
+      autorizado = true;
+    } else if (rol === 'CLIENTE') {
+      autorizado = solicitud.idCliente === idUsuario;
+    } else if (rol === 'TECNICO') {
+      if (solicitud.idTecnico === idUsuario) {
+        autorizado = true;
+      } else {
+        const ofreceServicio = await prisma.tecnicoServicio.findUnique({
+          where: { idTecnico_idServicio: { idTecnico: idUsuario, idServicio: solicitud.idServicio } }
+        });
+        autorizado = !!ofreceServicio;
+      }
+    }
+    if (!autorizado) {
+      return res.status(403).json({ error: 'No tenés permiso para ver esta solicitud' });
+    }
+
+    const [tecnicosQueRechazaron, tecnicosElegibles] = await Promise.all([
+      prisma.evento.count({ where: { idSolicitud, nombreEvento: 'SOLICITUD_RECHAZADA' } }),
+      prisma.tecnicoServicio.count({ where: { idServicio: solicitud.idServicio } })
+    ]);
+
+    res.json({
+      solicitud: {
+        idSolicitud: solicitud.idSolicitud,
+        detalle: solicitud.detalle,
+        estado: solicitud.estado,
+        servicio: solicitud.servicio,
+        cliente: solicitud.cliente,
+        tecnico: solicitud.tecnico,
+        fechaCreacion: solicitud.fechaCreacion,
+        fechaAceptacion: solicitud.fechaAceptacion,
+        fechaFinalizacion: solicitud.fechaFinalizacion,
+        rechazos: { tecnicosQueRechazaron, tecnicosElegibles }
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al obtener la solicitud' });
+  }
+};
