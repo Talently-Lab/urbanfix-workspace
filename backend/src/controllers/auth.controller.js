@@ -32,7 +32,7 @@ exports.register = async (req, res) => {
       });
     }
 
-    const rolesValidos = ['TECNICO', 'ADMINISTRADOR', 'CLIENTE'];
+    const rolesValidos = ['TECNICO', 'CLIENTE'];
 
     if (!rolesValidos.includes(rol)) {
       return res.status(400).json({
