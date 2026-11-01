@@ -36,7 +36,22 @@ const authorize = (...roles) => {
   };
 };
 
+const optionalAuthenticate = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    try {
+      req.user = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
+    } catch (error) {
+      req.user = null;
+    }
+  }
+
+  next();
+};
+
 module.exports = {
   authenticate,
-  authorize
+  authorize,
+  optionalAuthenticate
 };
