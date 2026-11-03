@@ -1,7 +1,7 @@
-const { PrismaClient } = require("@prisma/client");
-const { PrismaPg } = require("@prisma/adapter-pg");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+const { PrismaClient } = require('@prisma/client');
+const { PrismaPg } = require('@prisma/adapter-pg');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
@@ -15,21 +15,21 @@ exports.register = async (req, res) => {
 
     if (!email || !password || !nombre || !apellido || !rol) {
       return res.status(400).json({
-        error: "Todos los campos obligatorios son requeridos",
+        error: 'Todos los campos obligatorios son requeridos',
       });
     }
 
     if (password.length < 8) {
       return res.status(400).json({
-        error: "La contraseña debe tener al menos 8 caracteres",
+        error: 'La contraseña debe tener al menos 8 caracteres',
       });
     }
 
-    const rolesValidos = ["TECNICO", "CLIENTE"];
+    const rolesValidos = ['TECNICO', 'CLIENTE'];
 
     if (!rolesValidos.includes(rol)) {
       return res.status(400).json({
-        error: "Rol inválido",
+        error: 'Rol inválido',
       });
     }
 
@@ -39,7 +39,7 @@ exports.register = async (req, res) => {
 
     if (existing) {
       return res.status(409).json({
-        error: "El email ya está registrado",
+        error: 'El email ya está registrado',
       });
     }
 
@@ -71,7 +71,7 @@ exports.register = async (req, res) => {
       },
       process.env.JWT_SECRET,
       {
-        expiresIn: "7d",
+        expiresIn: '7d',
       },
     );
 
@@ -83,7 +83,7 @@ exports.register = async (req, res) => {
     console.error(error);
 
     res.status(500).json({
-      error: "Error interno del servidor",
+      error: 'Error interno del servidor',
     });
   }
 };
@@ -94,7 +94,7 @@ exports.login = async (req, res) => {
 
     if (!email || !password) {
       return res.status(400).json({
-        error: "Email y contraseña son requeridos",
+        error: 'Email y contraseña son requeridos',
       });
     }
 
@@ -104,7 +104,7 @@ exports.login = async (req, res) => {
 
     if (!usuario) {
       return res.status(401).json({
-        error: "Email o contraseña incorrectos",
+        error: 'Email o contraseña incorrectos',
       });
     }
 
@@ -112,7 +112,7 @@ exports.login = async (req, res) => {
 
     if (!passwordValida) {
       return res.status(401).json({
-        error: "Email o contraseña incorrectos",
+        error: 'Email o contraseña incorrectos',
       });
     }
 
@@ -122,7 +122,7 @@ exports.login = async (req, res) => {
         data: { ultimoLogin: new Date() },
       }),
       prisma.evento.create({
-        data: { nombreEvento: "LOGIN_EXITOSO", idUsuario: usuario.idUsuario },
+        data: { nombreEvento: 'LOGIN_EXITOSO', idUsuario: usuario.idUsuario },
       }),
     ]);
 
@@ -133,7 +133,7 @@ exports.login = async (req, res) => {
       },
       process.env.JWT_SECRET,
       {
-        expiresIn: "7d",
+        expiresIn: '7d',
       },
     );
 
@@ -152,7 +152,7 @@ exports.login = async (req, res) => {
     console.error(error);
 
     res.status(500).json({
-      error: "Error interno del servidor",
+      error: 'Error interno del servidor',
     });
   }
 };
@@ -163,7 +163,7 @@ exports.me = async (req, res) => {
 
     if (!idUsuario) {
       return res.status(401).json({
-        error: "token ausente o inválido",
+        error: 'token ausente o inválido',
       });
     }
 
