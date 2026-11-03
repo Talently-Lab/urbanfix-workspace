@@ -12,13 +12,22 @@ const getIdUsuario = (req) => req.user.userId;
 // POST /api/solicitudes  (CLIENTE)
 exports.create = async (req, res) => {
   try {
-    const { detalle, idServicio } = req.body;
+    const { detalle, idServicio, direccion, instanciaFormularioId } = req.body;
 
     if (!detalle || !idServicio) {
       return res.status(400).json({ error: 'detalle e idServicio son requeridos' });
     }
     if (!Number.isInteger(Number(idServicio))) {
       return res.status(400).json({ error: 'idServicio debe ser un número' });
+    }
+    if (
+      instanciaFormularioId !== undefined &&
+      (typeof instanciaFormularioId !== 'string' || instanciaFormularioId.length > 100)
+    ) {
+      return res.status(400).json({ error: 'instanciaFormularioId debe ser texto de hasta 100 caracteres' });
+    }
+    if (direccion !== undefined && (typeof direccion !== 'string' || !direccion.trim())) {
+      return res.status(400).json({ error: 'direccion debe ser un texto no vacío' });
     }
 
     const servicio = await prisma.servicio.findUnique({
@@ -32,6 +41,7 @@ exports.create = async (req, res) => {
       const nueva = await tx.solicitud.create({
         data: {
           detalle,
+          direccion: direccion ? direccion.trim() : undefined,
           idServicio: servicio.idServicio,
           idCliente: getIdUsuario(req)
         },
@@ -45,7 +55,8 @@ exports.create = async (req, res) => {
         data: {
           nombreEvento: 'SOLICITUD_CREADA',
           idUsuario: getIdUsuario(req),
-          idSolicitud: nueva.idSolicitud
+          idSolicitud: nueva.idSolicitud,
+          instanciaFormularioId: instanciaFormularioId || null
         }
       });
 
