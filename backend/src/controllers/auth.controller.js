@@ -4,31 +4,24 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL
+  connectionString: process.env.DATABASE_URL,
 });
 
 const prisma = new PrismaClient({ adapter });
 
 exports.register = async (req, res) => {
   try {
-    const {
-      email,
-      password,
-      nombre,
-      apellido,
-      rol,
-      numeroTelefono
-    } = req.body;
+    const { email, password, nombre, apellido, rol, numeroTelefono } = req.body;
 
     if (!email || !password || !nombre || !apellido || !rol) {
       return res.status(400).json({
-        error: 'Todos los campos obligatorios son requeridos'
+        error: 'Todos los campos obligatorios son requeridos',
       });
     }
 
     if (password.length < 8) {
       return res.status(400).json({
-        error: 'La contraseña debe tener al menos 8 caracteres'
+        error: 'La contraseña debe tener al menos 8 caracteres',
       });
     }
 
@@ -36,17 +29,17 @@ exports.register = async (req, res) => {
 
     if (!rolesValidos.includes(rol)) {
       return res.status(400).json({
-        error: 'Rol inválido'
+        error: 'Rol inválido',
       });
     }
 
     const existing = await prisma.usuario.findUnique({
-      where: { email }
+      where: { email },
     });
 
     if (existing) {
       return res.status(409).json({
-        error: 'El email ya está registrado'
+        error: 'El email ya está registrado',
       });
     }
 
@@ -59,7 +52,7 @@ exports.register = async (req, res) => {
         nombre,
         apellido,
         rol,
-        numeroTelefono
+        numeroTelefono,
       },
       select: {
         idUsuario: true,
@@ -67,30 +60,30 @@ exports.register = async (req, res) => {
         nombre: true,
         apellido: true,
         rol: true,
-        numeroTelefono: true
-      }
+        numeroTelefono: true,
+      },
     });
 
     const token = jwt.sign(
       {
         userId: usuario.idUsuario,
-        role: usuario.rol
+        role: usuario.rol,
       },
       process.env.JWT_SECRET,
       {
-        expiresIn: '7d'
-      }
+        expiresIn: '7d',
+      },
     );
 
     res.status(201).json({
       usuario,
-      token
+      token,
     });
   } catch (error) {
     console.error(error);
 
     res.status(500).json({
-      error: 'Error interno del servidor'
+      error: 'Error interno del servidor',
     });
   }
 };
@@ -101,50 +94,47 @@ exports.login = async (req, res) => {
 
     if (!email || !password) {
       return res.status(400).json({
-        error: 'Email y contraseña son requeridos'
+        error: 'Email y contraseña son requeridos',
       });
     }
 
     const usuario = await prisma.usuario.findUnique({
-      where: { email }
+      where: { email },
     });
 
     if (!usuario) {
       return res.status(401).json({
-        error: 'Email o contraseña incorrectos'
+        error: 'Email o contraseña incorrectos',
       });
     }
 
-    const passwordValida = await bcrypt.compare(
-      password,
-      usuario.password
-    );
+    const passwordValida = await bcrypt.compare(password, usuario.password);
 
     if (!passwordValida) {
       return res.status(401).json({
-        error: 'Email o contraseña incorrectos'
+        error: 'Email o contraseña incorrectos',
       });
     }
 
     await prisma.$transaction([
       prisma.usuario.update({
         where: { idUsuario: usuario.idUsuario },
-        data: { ultimoLogin: new Date() }
+        data: { ultimoLogin: new Date() },
       }),
       prisma.evento.create({
-        data: { nombreEvento: 'LOGIN_EXITOSO', idUsuario: usuario.idUsuario }
-      })
+        data: { nombreEvento: 'LOGIN_EXITOSO', idUsuario: usuario.idUsuario },
+      }),
     ]);
 
     const token = jwt.sign(
       {
         userId: usuario.idUsuario,
-        role: usuario.rol
+        role: usuario.rol,
       },
       process.env.JWT_SECRET,
       {
-        expiresIn: '7d'
-      }
+        expiresIn: '7d',
+      },
     );
 
     res.json({
@@ -154,15 +144,42 @@ exports.login = async (req, res) => {
         nombre: usuario.nombre,
         apellido: usuario.apellido,
         rol: usuario.rol,
-        numeroTelefono: usuario.numeroTelefono
+        numeroTelefono: usuario.numeroTelefono,
       },
-      token
+      token,
     });
   } catch (error) {
     console.error(error);
 
     res.status(500).json({
-      error: 'Error interno del servidor'
+      error: 'Error interno del servidor',
     });
+  }
+};
+
+exports.me = async (req, res) => {
+  try {
+    const idUsuario = req.user ? req.user.userId : null;
+
+    if (!idUsuario) {
+      return res.status(401).json({
+        error: 'token ausente o inválido',
+      });
+    }
+
+    const usuario = await prisma.usuario.findUnique({
+      where: { idUsuario },
+    });
+
+    res.json({
+      usuario: {
+        idUsuario: usuario.idUsuario,
+        nombre: usuario.nombre,
+        email: usuario.email,
+        rol: usuario.rol,
+      },
+    });
+  } catch (error) {
+    console.error(error);
   }
 };
