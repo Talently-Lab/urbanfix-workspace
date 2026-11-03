@@ -451,3 +451,44 @@ exports.getById = async (req, res) => {
     res.status(500).json({ error: 'Error al obtener la solicitud' });
   }
 };
+
+// GET /api/solicitudes/:id/eventos  (CLIENTE dueño, TECNICO asignado, ADMINISTRADOR)
+exports.getEventos = async (req, res) => {
+  try {
+    const idSolicitud = Number(req.params.id);
+    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+      return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
+    }
+    const idUsuario = getIdUsuario(req);
+    const rol = req.user.role;
+
+    const solicitud = await prisma.solicitud.findUnique({ where: { idSolicitud } });
+    if (!solicitud) {
+      return res.status(404).json({ error: 'La solicitud no existe' });
+    }
+
+    const autorizado =
+      rol === 'ADMINISTRADOR' ||
+      (rol === 'CLIENTE' && solicitud.idCliente === idUsuario) ||
+      (rol === 'TECNICO' && solicitud.idTecnico === idUsuario);
+    if (!autorizado) {
+      return res.status(403).json({ error: 'No tenés permiso para ver los eventos de esta solicitud' });
+    }
+
+    const eventos = await prisma.evento.findMany({
+      where: { idSolicitud },
+      select: {
+        idEvento: true,
+        nombreEvento: true,
+        fechaHora: true,
+        usuario: { select: { idUsuario: true, nombre: true } }
+      },
+      orderBy: [{ fechaHora: 'asc' }, { idEvento: 'asc' }]
+    });
+
+    res.json({ eventos });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al obtener los eventos de la solicitud' });
+  }
+};
