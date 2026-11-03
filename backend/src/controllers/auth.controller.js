@@ -11,7 +11,7 @@ const prisma = new PrismaClient({ adapter });
 
 exports.register = async (req, res) => {
   try {
-    const { email, password, nombre, apellido, rol, numeroTelefono } = req.body;
+    const { email, password, nombre, apellido, rol, numeroTelefono, idServicios } = req.body;
 
     if (!email || !password || !nombre || !apellido || !rol) {
       return res.status(400).json({
@@ -45,24 +45,83 @@ exports.register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    const usuario = await prisma.usuario.create({
-      data: {
-        email,
-        password: hashedPassword,
-        nombre,
-        apellido,
-        rol,
-        numeroTelefono,
-      },
-      select: {
-        idUsuario: true,
-        email: true,
-        nombre: true,
-        apellido: true,
-        rol: true,
-        numeroTelefono: true,
-      },
-    });
+    let usuario = {};
+
+    if (rol === 'TECNICO') {
+      if (!Array.isArray(idServicios) || idServicios.length === 0) {
+        return res.status(400).json({
+          mensaje: 'El técnico debe ofrecer al menos un servicio',
+        });
+      }
+
+      if (!idServicios.every((id) => Number.isInteger(id))) {
+        return res.status(400).json({
+          mensaje: 'Los IDs de servicios deben ser numeros enteros',
+        });
+      }
+
+      const servicios = await prisma.servicio.findMany({
+        where: {
+          idServicio: {
+            in: idServicios,
+          },
+        },
+      });
+
+      if (servicios.length !== idServicios.length) {
+        return res.status(400).json({
+          mensaje: 'Uno o mas servicios no existen',
+        });
+      }
+
+      usuario = await prisma.$transaction(async (tx) => {
+        const nuevoUsuario = await tx.usuario.create({
+          data: {
+            email,
+            password: hashedPassword,
+            nombre,
+            apellido,
+            rol,
+            numeroTelefono,
+          },
+          select: {
+            idUsuario: true,
+            email: true,
+            nombre: true,
+            apellido: true,
+            rol: true,
+            numeroTelefono: true,
+          },
+        });
+
+        await tx.tecnicoServicio.createMany({
+          data: idServicios.map((idServicio) => ({
+            idTecnico: nuevoUsuario.idUsuario,
+            idServicio,
+          })),
+        });
+        return nuevoUsuario;
+      });
+    } else {
+      usuario = await prisma.usuario.create({
+        data: {
+          email,
+          password: hashedPassword,
+          nombre,
+          apellido,
+          rol,
+          numeroTelefono,
+        },
+        select: {
+          idUsuario: true,
+          email: true,
+          nombre: true,
+          apellido: true,
+          rol: true,
+          numeroTelefono: true,
+        },
+      });
+    }
 
     const token = jwt.sign(
       {
