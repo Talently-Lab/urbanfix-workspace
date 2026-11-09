@@ -33,8 +33,17 @@ exports.register = async (req, res) => {
       });
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailNormalizado = email.trim().toLowerCase()
+
+    if (!emailRegex.test(emailNormalizado)) {
+      res.status(400).json({
+        mensaje: "El formato del email no es válido"
+      })
+    }
+
     const existing = await prisma.usuario.findUnique({
-      where: { email },
+      where: { email: emailNormalizado },
     });
 
     if (existing) {
@@ -77,7 +86,7 @@ exports.register = async (req, res) => {
       usuario = await prisma.$transaction(async (tx) => {
         const nuevoUsuario = await tx.usuario.create({
           data: {
-            email,
+            email: emailNormalizado,
             password: hashedPassword,
             nombre,
             apellido,
