@@ -7,7 +7,7 @@ const adapter = new PrismaPg({
 
 const prisma = new PrismaClient({ adapter });
 
-// GET /api/servicios  (cualquier usuario autenticado)
+// GET /api/servicios  (público, no requiere token)
 exports.getAll = async (req, res) => {
   try {
     const servicios = await prisma.servicio.findMany({
