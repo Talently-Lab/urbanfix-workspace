@@ -1,6 +1,6 @@
 # Contrato de API — UrbanFix Solutions
 
-**Última actualización:** 3 de noviembre de 2026
+**Última actualización:** 9 de noviembre de 2026
 
 ## 1. Información general
 
@@ -16,7 +16,7 @@
 
 - **Códigos HTTP:** `200` OK · `201` recurso creado · `204` recurso eliminado · `400` datos inválidos · `401` token ausente o inválido · `403` rol o usuario sin permiso · `404` recurso inexistente · `409` acción no válida para el estado actual · `500` error interno del servidor.
 
-Fuera de alcance del MVP: pagos integrados, chat en tiempo real, reseñas de usuarios, geolocalización avanzada y edición de perfil propio o de los servicios de un técnico después del registro.
+Fuera de alcance del MVP: pagos integrados, chat en tiempo real, reseñas de usuarios, geolocalización avanzada, edición de perfil propio o de los servicios de un técnico después del registro y edición y baja de servicios por parte del administrador (previstas para la versión 2.0).
 
 ---
 
@@ -125,7 +125,7 @@ No recibe body.
 
 ### GET /api/servicios
 
-Lista los servicios disponibles en la plataforma. **Auth:** cualquier usuario autenticado.
+Lista los servicios disponibles en la plataforma. **Auth:** No requiere.
 
 No recibe body.
 
@@ -167,8 +167,6 @@ No recibe body.
 
 ### POST /api/admin/servicios
 
-> Solo se implementa si el PM confirma que entra en el MVP.
-
 Crea un nuevo servicio. **Auth:** administrador.
 
 **Body**
@@ -193,48 +191,7 @@ Crea un nuevo servicio. **Auth:** administrador.
 }
 ```
 
-**Errores:** `400` datos inválidos.
-
-### PATCH /api/admin/servicios/:id
-
-> Solo se implementa si el PM confirma que entra en el MVP.
-
-Edita un servicio existente. **Auth:** administrador.
-
-**Body**
-
-```json
-{
-  "descripcion": "Instalación, reparación y mantenimiento de gas"
-}
-```
-
-**Respuesta 200**
-
-```json
-{
-  "mensaje": "Servicio actualizado",
-  "servicio": {
-    "idServicio": 5,
-    "nombreServicio": "Gasista",
-    "descripcion": "Instalación, reparación y mantenimiento de gas"
-  }
-}
-```
-
-**Errores:** `404` servicio inexistente.
-
-### DELETE /api/admin/servicios/:id
-
-> Solo se implementa si el PM confirma que entra en el MVP.
-
-Elimina un servicio. **Auth:** administrador.
-
-No recibe body.
-
-**Respuesta 204:** sin contenido.
-
-**Errores:** `404` servicio inexistente, `409` el servicio tiene solicitudes o técnicos asociados.
+**Errores:** `400` datos inválidos, `409` ya existe un servicio con ese nombre.
 
 ---
 
