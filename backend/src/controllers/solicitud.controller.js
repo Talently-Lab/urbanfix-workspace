@@ -486,14 +486,18 @@ exports.getEventos = async (req, res) => {
       return res.status(403).json({ error: 'No tenés permiso para ver los eventos de esta solicitud' });
     }
 
+    const select = {
+      idEvento: true,
+      nombreEvento: true,
+      fechaHora: true
+    };
+    if (rol === 'ADMINISTRADOR') {
+      select.usuario = { select: { idUsuario: true, nombre: true } };
+    }
+
     const eventos = await prisma.evento.findMany({
       where: { idSolicitud },
-      select: {
-        idEvento: true,
-        nombreEvento: true,
-        fechaHora: true,
-        usuario: { select: { idUsuario: true, nombre: true } }
-      },
+      select,
       orderBy: [{ fechaHora: 'asc' }, { idEvento: 'asc' }]
     });
 
