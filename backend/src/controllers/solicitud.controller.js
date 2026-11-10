@@ -88,7 +88,7 @@ exports.getMias = async (req, res) => {
   }
 };
 
-// GET /api/servicios  (público, no requiere token)
+// GET /api/solicitudes  (TECNICO) - disponibles
 exports.getDisponibles = async (req, res) => {
   try {
     const idTecnico = getIdUsuario(req);
