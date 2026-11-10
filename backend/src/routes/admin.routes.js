@@ -16,4 +16,6 @@ router.patch('/servicios/:id', notImplemented);
 router.delete('/servicios/:id', notImplemented);
 router.patch('/solicitudes/:id/cancelar', adminController.cancelarSolicitud);
 
+router.get('/metricas', adminController.getMetricas)
+
 module.exports = router;
