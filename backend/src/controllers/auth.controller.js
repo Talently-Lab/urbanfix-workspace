@@ -37,8 +37,8 @@ exports.register = async (req, res) => {
     const emailNormalizado = email.trim().toLowerCase()
 
     if (!emailRegex.test(emailNormalizado)) {
-      res.status(400).json({
-        mensaje: "El formato del email no es válido"
+      return res.status(400).json({
+        error: "El formato del email no es válido"
       })
     }
 
@@ -59,13 +59,13 @@ exports.register = async (req, res) => {
     if (rol === 'TECNICO') {
       if (!Array.isArray(idServicios) || idServicios.length === 0) {
         return res.status(400).json({
-          mensaje: 'El técnico debe ofrecer al menos un servicio',
+          error: 'El técnico debe ofrecer al menos un servicio',
         });
       }
 
       if (!idServicios.every((id) => Number.isInteger(id))) {
         return res.status(400).json({
-          mensaje: 'Los IDs de servicios deben ser numeros enteros',
+          error: 'Los IDs de servicios deben ser numeros enteros',
         });
       }
 
@@ -79,7 +79,7 @@ exports.register = async (req, res) => {
 
       if (servicios.length !== idServicios.length) {
         return res.status(400).json({
-          mensaje: 'Uno o mas servicios no existen',
+          error: 'Uno o mas servicios no existen',
         });
       }
 
