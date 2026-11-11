@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import api from "../services/api";
+import api from "../Services/api.js";
 import { useAuth } from "./AuthContext";
 const TecnicoContext = createContext(null);
 
