@@ -14,7 +14,7 @@ exports.create = async (req, res) => {
   try {
     const { detalle, idServicio, direccion, instanciaFormularioId } = req.body;
 
-    if (!detalle || !idServicio) {
+    if (!detalle.trim() || !idServicio) {
       return res.status(400).json({ error: 'detalle e idServicio son requeridos' });
     }
     if (!Number.isInteger(Number(idServicio))) {
