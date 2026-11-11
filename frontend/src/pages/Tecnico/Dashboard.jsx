@@ -1,227 +1,179 @@
-import { useCallback, useEffect, useState } from "react";
-import { useAuth } from "../../context/AuthContext";
-import api from "../../services/api";
-import Header from "../../Components/Header";
-import SolicitudCard from "../Cliente/SolicitudCard";
+
+import { useState } from "react";
+import { useTecnico } from "../../context/TecnicoContext";
+import SolicitudesDisponibles from "../Tecnico/SolicitudesDisponibles";
+import SolicitudesAceptadas from "../Tecnico/SolicitudesAceptadas";
 
 function Dashboard() {
-  const { token } = useAuth();
+  const [vista, setVista] = useState("disponibles");
 
-  const [solicitudes, setSolicitudes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [procesando, setProcesando] = useState(null);
+  const {
+    solicitudesPendientes = [],
+    misTrabajos = [],
+  } = useTecnico();
 
-  const fetchSolicitudes = useCallback(async () => {
-    try {
-      setError("");
-
-      const respuesta = await api.get("/solicitudes", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = respuesta.data;
-
-      const lista = Array.isArray(data)
-        ? data
-        : Array.isArray(data?.solicitudes)
-          ? data.solicitudes
-          : [];
-
-      setSolicitudes(lista);
-    } catch (err) {
-      console.error("Error al cargar solicitudes:", err);
-
-      setError(
-        err.response?.data?.error ||
-          "No se pudieron cargar las solicitudes."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [token]);
-
-  useEffect(() => {
-    if (!token) {
-      setError("No hay una sesión activa.");
-      setLoading(false);
-      return;
-    }
-
-    fetchSolicitudes();
-  }, [token, fetchSolicitudes]);
-
-  const handleAceptar = async (id) => {
-    if (
-      !window.confirm(
-        "¿Estás seguro que querés aceptar este trabajo?"
-      )
-    ) {
-      return;
-    }
-
-    try {
-      setProcesando(id);
-
-      await api.patch(
-        `/solicitudes/${id}/aceptar`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      window.alert(
-        "¡Trabajo aceptado con éxito! Ya podés consultar los datos del cliente."
-      );
-
-      await fetchSolicitudes();
-    } catch (err) {
-      console.error("Error al aceptar solicitud:", err);
-
-      window.alert(
-        err.response?.data?.error ||
-          "No se pudo aceptar la solicitud. Quizás otro técnico ya la tomó."
-      );
-
-      await fetchSolicitudes();
-    } finally {
-      setProcesando(null);
-    }
-  };
-
-  const handleRechazar = async (id) => {
-    if (
-      !window.confirm(
-        "¿Estás seguro que querés rechazar esta solicitud?"
-      )
-    ) {
-      return;
-    }
-
-    try {
-      setProcesando(id);
-
-      await api.patch(
-        `/solicitudes/${id}/rechazar`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      await fetchSolicitudes();
-    } catch (err) {
-      console.error("Error al rechazar solicitud:", err);
-
-      window.alert(
-        err.response?.data?.error ||
-          "No se pudo rechazar la solicitud."
-      );
-
-      await fetchSolicitudes();
-    } finally {
-      setProcesando(null);
-    }
-  };
+  const botones = [
+    {
+      id: "disponibles",
+      titulo: "Solicitudes disponibles",
+      cantidad: solicitudesPendientes.length,
+    },
+    {
+      id: "trabajos",
+      titulo: "Mis trabajos",
+      cantidad: misTrabajos.length,
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <main className="min-h-screen bg-urban-fondo px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
+      <div className="mx-auto max-w-7xl space-y-7">
+        {/* Encabezado */}
+        <header className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-wider text-urban-secundario">
+              UrbanFix · Panel profesional
+            </p>
 
-      <main className="mx-auto max-w-7xl px-6 py-8">
+            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-urban-principal sm:text-4xl">
+              Panel del técnico
+            </h1>
+
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-urban-texto-secundario sm:text-base">
+              Gestioná tus solicitudes, organizá tus trabajos y
+              actualizá su progreso desde un solo lugar.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-urban-fondo text-xl">
+              🛠️
+            </span>
+
+            <div>
+              <p className="text-sm font-bold text-urban-principal">
+                Área de trabajo
+              </p>
+              <p className="mt-1 text-xs text-urban-texto-secundario">
+                Gestión de servicios
+              </p>
+            </div>
+          </div>
+        </header>
+
         {/* Resumen */}
-        <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">
-            Solicitudes disponibles
-          </p>
-
-          <p className="mt-2 text-4xl font-bold text-slate-900">
-            {solicitudes.length}
-          </p>
-
-          <p className="mt-2 text-sm text-slate-500">
-            Trabajos pendientes que coinciden con tus servicios.
-          </p>
-        </section>
-
-        {/* Cargando */}
-        {loading && (
-          <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-            <p className="font-medium text-slate-700">
-              Cargando solicitudes...
-            </p>
-          </div>
-        )}
-
-        {/* Error de carga */}
-        {!loading && error && (
-          <div
-            role="alert"
-            className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-700"
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => setVista("disponibles")}
+            className={`rounded-2xl border bg-white p-5 text-left shadow-sm transition hover:shadow-md ${
+              vista === "disponibles"
+                ? "border-urban-button ring-2 ring-urban-button/10"
+                : "border-slate-200"
+            }`}
           >
-            <p className="font-semibold">
-              No pudimos cargar las solicitudes
-            </p>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-urban-texto-secundario">
+                  Solicitudes disponibles
+                </p>
 
-            <p className="mt-1 text-sm">{error}</p>
+                <p className="mt-2 text-3xl font-extrabold text-urban-principal">
+                  {solicitudesPendientes.length}
+                </p>
 
-            <button
-              onClick={() => {
-                setLoading(true);
-                fetchSolicitudes();
-              }}
-              className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
-            >
-              Intentar nuevamente
-            </button>
-          </div>
-        )}
+                <p className="mt-2 text-xs text-urban-texto-secundario">
+                  Trabajos que podés revisar
+                </p>
+              </div>
 
-        {/* Lista vacía */}
-        {!loading && !error && solicitudes.length === 0 && (
-          <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-white px-6 py-12 text-center">
-            <div className="text-4xl">🧰</div>
-
-            <h2 className="mt-4 text-xl font-bold text-slate-800">
-              No hay trabajos disponibles
-            </h2>
-
-            <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-              Cuando haya nuevas solicitudes de tus servicios,
-              aparecerán acá.
-            </p>
-          </div>
-        )}
-
-        {/* Tarjetas */}
-        {!loading && !error && solicitudes.length > 0 && (
-          <section>
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-xl font-bold text-slate-900">
-                Nuevas oportunidades
-              </h2>
-
-              <span className="rounded-full bg-yellow-100 px-3 py-1 text-sm font-semibold text-yellow-800">
-                {solicitudes.length} pendiente(s)
+              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 text-xl">
+                📋
               </span>
             </div>
+          </button>
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {solicitudes.map((solicitud) => (
-                <SolicitudCard className=''  key={solicitud.id} solicitud={solicitud} />
-              ))}
+          <button
+            type="button"
+            onClick={() => setVista("trabajos")}
+            className={`rounded-2xl border bg-white p-5 text-left shadow-sm transition hover:shadow-md ${
+              vista === "trabajos"
+                ? "border-urban-button ring-2 ring-urban-button/10"
+                : "border-slate-200"
+            }`}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-urban-texto-secundario">
+                  Mis trabajos
+                </p>
+
+                <p className="mt-2 text-3xl font-extrabold text-urban-principal">
+                  {misTrabajos.length}
+                </p>
+
+                <p className="mt-2 text-xs text-urban-texto-secundario">
+                  Trabajos asignados a vos
+                </p>
+              </div>
+
+              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-xl">
+                🧰
+              </span>
             </div>
+          </button>
+        </section>
 
-          </section>
-        )}
-      </main>
-    </div>
+        {/* Navegación */}
+        <nav
+          aria-label="Secciones del panel"
+          className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm sm:flex-row"
+        >
+          {botones.map((boton) => {
+            const activo = vista === boton.id;
+
+            return (
+              <button
+                key={boton.id}
+                type="button"
+                onClick={() => setVista(boton.id)}
+                aria-current={activo ? "page" : undefined}
+                className={`flex flex-1 items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${
+                  activo
+                    ? "bg-urban-principal text-white shadow-sm"
+                    : "text-urban-texto-secundario hover:bg-urban-fondo hover:text-urban-principal"
+                }`}
+              >
+                <span>{boton.titulo}</span>
+
+                <span
+                  className={`rounded-lg px-2.5 py-1 text-xs ${
+                    activo
+                      ? "bg-white/15 text-white"
+                      : "bg-urban-fondo text-urban-principal"
+                  }`}
+                >
+                  {boton.cantidad}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Contenido de la pestaña */}
+        <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:p-7">
+          {vista === "disponibles" ? (
+            <SolicitudesDisponibles />
+          ) : (
+            <SolicitudesAceptadas />
+          )}
+        </section>
+
+        <footer className="pb-2 text-center text-xs text-urban-texto-secundario">
+          UrbanFix · Panel de gestión de servicios
+        </footer>
+      </div>
+    </main>
   );
 }
 
