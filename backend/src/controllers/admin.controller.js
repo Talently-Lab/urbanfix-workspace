@@ -303,3 +303,32 @@ exports.getMetricas = async (req, res) => {
     res.status(500).json({ error: 'Error al obtener las metricas' });
   }
 };
+
+// POST /api/admin/servicios  (ADMINISTRADOR)
+exports.crearServicio = async (req, res) => {
+  try {
+    const nombreServicio = String(req.body.nombreServicio || '').trim();
+    const descripcion = req.body.descripcion ? String(req.body.descripcion).trim() : null;
+
+    if (!nombreServicio || nombreServicio.length > 100) {
+      return res.status(400).json({ error: 'Datos inválidos: nombreServicio es obligatorio (máximo 100 caracteres)' });
+    }
+
+    const existe = await prisma.servicio.findFirst({
+      where: { nombreServicio: { equals: nombreServicio, mode: 'insensitive' } },
+    });
+    if (existe) {
+      return res.status(409).json({ error: 'Ya existe un servicio con ese nombre' });
+    }
+
+    const servicio = await prisma.servicio.create({
+      data: { nombreServicio, descripcion },
+      select: { idServicio: true, nombreServicio: true, descripcion: true },
+    });
+
+    res.status(201).json({ mensaje: 'Servicio creado correctamente', servicio });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al crear el servicio' });
+  }
+};
