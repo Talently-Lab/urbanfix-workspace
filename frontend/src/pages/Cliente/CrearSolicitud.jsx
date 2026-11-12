@@ -99,29 +99,10 @@ function CrearSolicitud() {
         detalle: form.descripcion.trim(),
         direccion: form.direccion.trim(),
         idServicio: Number(form.idServicio),
+        instanciaFormularioId,
       });
 
       console.log("Solicitud creada:", respuesta.data);
-
-      // 2. Registrar evento SOLICITUD_CREADA
-      // Este evento no afecta el resultado que ve el usuario.
-      api.post("/eventos", {
-        nombreEvento: "SOLICITUD_CREADA",
-        sesionId,
-        instanciaFormularioId,
-      })
-        .then(() => {
-          console.log(
-            "SOLICITUD_CREADA:",
-            instanciaFormularioId
-          );
-        })
-        .catch((eventoError) => {
-          console.error(
-            "Error al registrar SOLICITUD_CREADA:",
-            eventoError.response?.data || eventoError.message
-          );
-        });
 
       // 3. Mostrar éxito
       setAviso({
@@ -161,7 +142,7 @@ function CrearSolicitud() {
         </p>
 
         <button
-          onClick={() => navigate("/client/dashboard")}
+          onClick={() => navigate("/Client/dashboard")}
           className="mt-4 rounded-xl bg-urban-button px-5 py-3 font-semibold text-white"
         >
           Volver al inicio
@@ -235,7 +216,7 @@ function CrearSolicitud() {
               {aviso.tipo === "success" ? (
                 <button
                   type="button"
-                  onClick={() => navigate("/client/dashboard")}
+                  onClick={() => navigate("/Client/dashboard")}
                   className="mt-7 rounded-xl bg-urban-button px-7 py-3 font-bold text-white shadow-sm transition hover:brightness-95"
                 >
                   Volver al inicio
@@ -245,7 +226,7 @@ function CrearSolicitud() {
 
                   <button
                     type="button"
-                    onClick={() => navigate("/client/dashboard")}
+                    onClick={() => navigate("/Client/dashboard")}
                     className="rounded-xl border border-gray-300 bg-white px-6 py-3 font-semibold text-gray-700 transition hover:bg-gray-50"
                   >
                     Volver al inicio
@@ -346,6 +327,7 @@ function CrearSolicitud() {
                 type="text"
                 required
                 maxLength={100}
+                minLength={1}
                 placeholder="Ej: Rotura de caño en la cocina"
                 value={form.titulo}
                 onChange={(e) =>
@@ -369,6 +351,7 @@ function CrearSolicitud() {
                 rows={5}
                 required
                 maxLength={1000}
+                minLength={1}
                 placeholder="Describí qué sucede, desde cuándo ocurre y cualquier detalle que pueda ayudar al técnico..."
                 value={form.descripcion}
                 onChange={(e) =>
@@ -395,6 +378,7 @@ function CrearSolicitud() {
                 id="direccion"
                 type="text"
                 required
+                maxLength={200}
                 placeholder="Ej: Av. Siempre Viva 123"
                 value={form.direccion}
                 onChange={(e) =>

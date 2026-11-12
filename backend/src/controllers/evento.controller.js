@@ -1,17 +1,12 @@
-const { PrismaClient } = require('@prisma/client');
-const { PrismaPg } = require('@prisma/adapter-pg');
-
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL
-});
-
-const prisma = new PrismaClient({ adapter });
+const getPrisma = require('../lib/prisma');
+const { respondWithDatabaseError } = require('../lib/errors');
 
 const EVENTOS_DEL_FRONT = ['VISTA_LOGIN', 'VISTA_REGISTRO', 'SOLICITUD_INICIADA'];
 
 // POST /api/eventos  (público, con autenticación opcional)
 exports.crear = async (req, res) => {
   try {
+    const prisma = getPrisma();
     const { nombreEvento, sesionId, instanciaFormularioId } = req.body;
 
     if (!EVENTOS_DEL_FRONT.includes(nombreEvento)) {
@@ -48,7 +43,11 @@ exports.crear = async (req, res) => {
 
     res.status(201).json({ mensaje: 'Evento registrado' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al registrar el evento' });
+    return respondWithDatabaseError(
+      res,
+      error,
+      'Error al registrar el evento:',
+      'No se pudo registrar el evento. Intentá nuevamente más tarde.'
+    );
   }
 };

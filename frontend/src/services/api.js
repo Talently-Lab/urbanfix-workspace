@@ -1,31 +1,44 @@
-﻿import axios from 'axios';
+import axios from 'axios';
+
+const getRuntimeEnv = () => {
+  return import.meta.env ?? {};
+};
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api', //Base de la URL
+  baseURL: getRuntimeEnv().VITE_API_URL || '/api',
 });
 
 api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`; //Token que figura en Headers
-    }
+  const storage = globalThis.localStorage;
+  const token = storage?.getItem('token');
 
-    return config;
+  config.headers = config.headers ?? {};
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
 });
 
 api.interceptors.response.use(
-    (res) => {
-        return res; //Si del back recibimos 200 'ok'
-    },
-    (err) => {
-        if (err.response?.status === 401) { //si tuvimos un error entonces limpiamos token y que logee
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/login';
-        }
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      const storage = globalThis.localStorage;
+      if (storage) {
+        storage.removeItem('token');
+        storage.removeItem('user');
+      }
 
-        return Promise.reject(err);
+      if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+        const event = new Event('urbanfix:unauthorized');
+        window.dispatchEvent(event);
+      }
     }
+
+    return Promise.reject(err);
+  }
 );
 
 export default api;

@@ -64,10 +64,18 @@ function SolicitudCard({ solicitud }) {
 
       <div className="flex-1">
         <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+          Título
+        </p>
+
+        <p className="mt-2 text-base font-bold text-urban-principal">
+          {solicitud.titulo || "Solicitud de servicio"}
+        </p>
+
+        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
           Detalle
         </p>
 
-        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+        <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-700">
           {solicitud.detalle || "Sin detalle disponible."}
         </p>
       </div>
@@ -76,7 +84,7 @@ function SolicitudCard({ solicitud }) {
         <button
           type="button"
           onClick={() =>
-            navigate(`/client/solicitud/${idSolicitud}`)
+            navigate(`/Client/solicitud/${idSolicitud}`)
           }
           className="mt-5 w-full rounded-xl bg-urban-principal px-4 py-3 text-sm font-bold text-white transition hover:brightness-110"
         >

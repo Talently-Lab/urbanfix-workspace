@@ -234,6 +234,7 @@ Ordenadas de la más reciente a la más antigua.
 [
   {
     "idSolicitud": 3,
+    "titulo": "Canilla con pérdida",
     "detalle": "Arreglo de canilla que gotea",
     "direccion": "Av. Rivadavia 4500",
     "estado": "PENDIENTE",
@@ -262,6 +263,7 @@ Crea una solicitud. **Auth:** cliente.
 
 ```json
 {
+  "titulo": "Canilla con pérdida",
   "idServicio": 1,
   "detalle": "Arreglo de canilla que gotea",
   "direccion": "Av. Rivadavia 4500",
@@ -269,8 +271,9 @@ Crea una solicitud. **Auth:** cliente.
 }
 ```
 
-- `idServicio` y `detalle` son obligatorios.
-- `direccion` es opcional por ahora: si no llega, queda como `"Sin especificar"`. Si llega, debe ser un texto no vacío.
+- `titulo` es obligatorio y admite hasta 100 caracteres.
+- `idServicio` debe ser un entero positivo y `detalle` es obligatorio (hasta 1000 caracteres).
+- `direccion` es obligatoria y admite hasta 200 caracteres.
 - `instanciaFormularioId` es opcional: texto de hasta 100 caracteres. Es el mismo identificador que el front envía en el evento `SOLICITUD_INICIADA` al abrir el formulario, y se guarda en el evento `SOLICITUD_CREADA` (no en la solicitud). Se usa para medir el abandono del formulario.
 
 **Respuesta 201** (la solicitud directamente, sin envoltorio)
@@ -278,6 +281,7 @@ Crea una solicitud. **Auth:** cliente.
 ```json
 {
   "idSolicitud": 10,
+  "titulo": "Canilla con pérdida",
   "detalle": "Arreglo de canilla que gotea",
   "direccion": "Av. Rivadavia 4500",
   "estado": "PENDIENTE",
@@ -312,6 +316,7 @@ No recibe body.
 [
   {
     "idSolicitud": 10,
+    "titulo": "Canilla con pérdida",
     "detalle": "Arreglo de canilla que gotea",
     "direccion": "Av. Rivadavia 4500",
     "estado": "ACEPTADA",
@@ -348,6 +353,7 @@ No recibe body.
   "solicitudes": [
     {
       "idSolicitud": 10,
+      "titulo": "Canilla con pérdida",
       "detalle": "Arreglo de canilla que gotea",
       "direccion": "Av. Rivadavia 4500",
       "estado": "ACEPTADA",
@@ -381,6 +387,7 @@ No recibe body.
 {
   "solicitud": {
     "idSolicitud": 10,
+    "titulo": "Canilla con pérdida",
     "detalle": "Arreglo de canilla que gotea",
     "direccion": "Av. Rivadavia 4500",
     "estado": "ACEPTADA",

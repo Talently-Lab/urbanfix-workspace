@@ -1,22 +1,21 @@
-const { PrismaClient } = require('@prisma/client');
-const { PrismaPg } = require('@prisma/adapter-pg');
-
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL
-});
-
-const prisma = new PrismaClient({ adapter });
+const getPrisma = require('../lib/prisma');
+const { respondWithDatabaseError } = require('../lib/errors');
 
 // GET /api/servicios  (público, no requiere token)
 exports.getAll = async (req, res) => {
   try {
+    const prisma = getPrisma();
     const servicios = await prisma.servicio.findMany({
       select: { idServicio: true, nombreServicio: true, descripcion: true },
       orderBy: { nombreServicio: 'asc' }
     });
     res.json({ servicios });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al obtener los servicios' });
+    return respondWithDatabaseError(
+      res,
+      error,
+      'Error al obtener los servicios:',
+      'No se pudo cargar la lista de servicios. Intentá nuevamente más tarde.'
+    );
   }
 };

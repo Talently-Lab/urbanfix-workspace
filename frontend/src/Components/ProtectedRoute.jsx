@@ -1,29 +1,23 @@
-import { Navigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { getProtectedRouteAccess } from './protectedRouteAccess';
+import { LoadingIndicator } from './DashboardState.js';
 
 function ProtectedRoute({ children, allowedRole }) {
   const { user, loading } = useAuth();
+  const access = getProtectedRouteAccess({ loading, user, allowedRole });
 
-  if (loading) {
-    return <p>Cargando...</p>;
+  if (access.type === 'loading') {
+    return (
+      <LoadingIndicator
+        label="Restaurando sesión..."
+        className="min-h-screen justify-center text-urban-principal"
+      />
+    );
   }
 
-  // Si no está autenticado
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // Si tiene un rol diferente al permitido
-  if (user.role !== allowedRole) {
-    if (user.role === "technician") {
-      return <Navigate to="/technician/dashboard" replace />;
-    }
-
-    if (user.role === "client") {
-      return <Navigate to="/client/dashboard" replace />;
-    }
-
-    return <Navigate to="/login" replace />;
+  if (access.type === 'redirect') {
+    return <Navigate to={access.to} replace />;
   }
 
   return children;

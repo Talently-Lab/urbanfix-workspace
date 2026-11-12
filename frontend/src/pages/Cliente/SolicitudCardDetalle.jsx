@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
+import api from "../../services/api.js";
+import { LoadingIndicator } from "../../Components/DashboardState.js";
 
 function SolicitudCardDetalle() {
   const { id } = useParams();
@@ -14,34 +15,18 @@ function SolicitudCardDetalle() {
 
   useEffect(() => {
     const obtenerSolicitud = async () => {
-      if (!token) return;
+      if (!token) {
+        setError("Iniciá sesión para consultar esta solicitud.");
+        setCargando(false);
+        return;
+      }
 
       try {
         setCargando(true);
         setError("");
 
-        const respuesta = await axios.get(
-          "http://localhost:3001/api/solicitudes/mias",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        const solicitudes = Array.isArray(respuesta.data)
-          ? respuesta.data
-          : respuesta.data.solicitudes ?? [];
-
-        const encontrada = solicitudes.find(
-          (item) => String(item.idSolicitud ?? item.id) === String(id)
-        );
-
-        if (!encontrada) {
-          setError("No encontramos esta solicitud.");
-          return;
-        }
-
+        const respuesta = await api.get(`/solicitudes/${id}`);
+        const encontrada = respuesta.data?.solicitud ?? respuesta.data;
         setSolicitud(encontrada);
       } catch (error) {
         console.error(
@@ -72,9 +57,10 @@ function SolicitudCardDetalle() {
   if (cargando) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-urban-fondo px-4">
-        <p className="font-semibold text-urban-principal">
-          Cargando solicitud...
-        </p>
+        <LoadingIndicator
+          label="Cargando solicitud..."
+          className="font-semibold text-urban-principal"
+        />
       </main>
     );
   }
@@ -95,7 +81,7 @@ function SolicitudCardDetalle() {
 
           <button
             type="button"
-            onClick={() => navigate("/client/dashboard")}
+            onClick={() => navigate("/Client/dashboard")}
             className="mt-6 rounded-xl bg-urban-button px-5 py-3 text-sm font-bold text-white hover:brightness-95"
           >
             Volver al inicio
@@ -114,7 +100,7 @@ function SolicitudCardDetalle() {
         {/* VOLVER */}
         <button
           type="button"
-          onClick={() => navigate("/client/dashboard")}
+          onClick={() => navigate("/Client/dashboard")}
           className="mb-6 flex items-center gap-2 text-sm font-bold text-urban-principal transition hover:text-urban-button"
         >
           ← Volver a mis solicitudes
@@ -148,6 +134,16 @@ function SolicitudCardDetalle() {
           </div>
 
           <div className="mt-5 space-y-5">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Título
+              </p>
+
+              <p className="mt-1 font-semibold text-slate-700">
+                {solicitud.titulo || "Solicitud de servicio"}
+              </p>
+            </div>
+
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
                 Servicio

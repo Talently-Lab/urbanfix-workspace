@@ -1,19 +1,13 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
-const { PrismaPg } = require('@prisma/adapter-pg');
 const { authenticate } = require('../middleware/auth.middleware');
-
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL
-});
-
-const prisma = new PrismaClient({ adapter });
+const getPrisma = require('../lib/prisma');
+const { respondWithDatabaseError } = require('../lib/errors');
 
 const router = express.Router();
 
 router.get('/me', authenticate, async (req, res) => {
   try {
-    const user = await prisma.usuario.findUnique({
+    const user = await getPrisma().usuario.findUnique({
       where: {
         idUsuario: req.user.userId
       },
@@ -34,18 +28,20 @@ router.get('/me', authenticate, async (req, res) => {
       });
     }
 
-    res.json(user);
+    return res.json(user);
   } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      error: 'Error interno del servidor'
-    });
+    return respondWithDatabaseError(
+      res,
+      error,
+      'Error al cargar el perfil:',
+      'No se pudo cargar el perfil.'
+    );
   }
 });
 
 router.patch('/me', authenticate, async (req, res) => {
   try {
+    const prisma = getPrisma();
     const { nombre, numeroTelefono } = req.body;
 
     const user = await prisma.usuario.update({
@@ -66,13 +62,14 @@ router.patch('/me', authenticate, async (req, res) => {
       }
     });
 
-    res.json(user);
+    return res.json(user);
   } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      error: 'Error interno del servidor'
-    });
+    return respondWithDatabaseError(
+      res,
+      error,
+      'Error al actualizar el perfil:',
+      'No se pudo actualizar el perfil.'
+    );
   }
 });
 

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import SolicitudCard from "./Cliente/SolicitudCard";
 import api from "../services/api.js"
+import { LoadingIndicator } from "../Components/DashboardState.js";
 
 function Client() {
   const navigate = useNavigate();
@@ -146,7 +146,7 @@ function Client() {
   const solicitarServicio = () => {
     if (!servicioSeleccionado) return;
 
-    navigate("/client/solicitud", {
+    navigate("/Client/solicitud", {
       state: {
         servicio: servicioSeleccionado,
       },
@@ -213,9 +213,10 @@ function Client() {
           {busqueda && !servicioSeleccionado && (
             <div className="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
               {cargandoServicios ? (
-                <p className="p-5 text-sm text-slate-500">
-                  Cargando servicios...
-                </p>
+                <LoadingIndicator
+                  label="Cargando servicios..."
+                  className="p-5 text-sm text-slate-500"
+                />
               ) : serviciosFiltrados.length > 0 ? (
                 serviciosFiltrados.map((servicio) => (
                   <button

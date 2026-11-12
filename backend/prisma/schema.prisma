@@ -73,6 +73,7 @@ model TecnicoServicio {
 
 model Solicitud {
   idSolicitud Int             @id @default(autoincrement())
+  titulo      String          @default("")
   detalle     String
   direccion   String   @default("Sin especificar")
   estado      EstadoSolicitud @default(PENDIENTE)

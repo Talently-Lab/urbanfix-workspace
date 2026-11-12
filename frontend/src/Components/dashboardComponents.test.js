@@ -22,6 +22,7 @@ test('dashboard empty, loading, and error states render without fabricated conte
 
   const loading = renderToStaticMarkup(DashboardState({ loading: true }))
   assert.match(loading, /Cargando información/)
+  assert.match(loading, /animate-spin/)
 
   const error = renderToStaticMarkup(DashboardState({ error: 'API no disponible' }))
   assert.match(error, /role="alert"/)

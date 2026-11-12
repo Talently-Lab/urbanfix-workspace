@@ -1,24 +1,40 @@
-const { PrismaClient } = require('@prisma/client');
-const { PrismaPg } = require('@prisma/adapter-pg');
-
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL
-});
-
-const prisma = new PrismaClient({ adapter });
+const getPrisma = require('../lib/prisma');
+const { respondWithDatabaseError } = require('../lib/errors');
 
 const getIdUsuario = (req) => req.user.userId;
 
 // POST /api/solicitudes  (CLIENTE)
 exports.create = async (req, res) => {
   try {
-    const { detalle, idServicio, direccion, instanciaFormularioId } = req.body;
+    const {
+      titulo,
+      detalle,
+      idServicio,
+      direccion,
+      instanciaFormularioId
+    } = req.body ?? {};
 
-    if (!detalle.trim() || !idServicio) {
-      return res.status(400).json({ error: 'detalle e idServicio son requeridos' });
+    if (typeof titulo !== 'string' || !titulo.trim()) {
+      return res.status(400).json({ error: 'El título es obligatorio' });
     }
-    if (!Number.isInteger(Number(idServicio))) {
-      return res.status(400).json({ error: 'idServicio debe ser un número' });
+    if (titulo.trim().length > 100) {
+      return res.status(400).json({ error: 'El título no puede superar los 100 caracteres' });
+    }
+    if (typeof detalle !== 'string' || !detalle.trim()) {
+      return res.status(400).json({ error: 'El detalle es obligatorio' });
+    }
+    if (detalle.trim().length > 1000) {
+      return res.status(400).json({ error: 'El detalle no puede superar los 1000 caracteres' });
+    }
+    const idServicioNormalizado = Number(idServicio);
+    if (!Number.isInteger(idServicioNormalizado) || idServicioNormalizado < 1) {
+      return res.status(400).json({ error: 'idServicio debe ser un número entero positivo' });
+    }
+    if (typeof direccion !== 'string' || !direccion.trim()) {
+      return res.status(400).json({ error: 'La dirección es obligatoria' });
+    }
+    if (direccion.trim().length > 200) {
+      return res.status(400).json({ error: 'La dirección no puede superar los 200 caracteres' });
     }
     if (
       instanciaFormularioId !== undefined &&
@@ -26,12 +42,10 @@ exports.create = async (req, res) => {
     ) {
       return res.status(400).json({ error: 'instanciaFormularioId debe ser texto de hasta 100 caracteres' });
     }
-    if (direccion !== undefined && (typeof direccion !== 'string' || !direccion.trim())) {
-      return res.status(400).json({ error: 'direccion debe ser un texto no vacío' });
-    }
 
+    const prisma = getPrisma();
     const servicio = await prisma.servicio.findUnique({
-      where: { idServicio: Number(idServicio) }
+      where: { idServicio: idServicioNormalizado }
     });
     if (!servicio) {
       return res.status(404).json({ error: 'El servicio no existe' });
@@ -40,8 +54,9 @@ exports.create = async (req, res) => {
     const solicitud = await prisma.$transaction(async (tx) => {
       const nueva = await tx.solicitud.create({
         data: {
-          detalle,
-          direccion: direccion ? direccion.trim() : undefined,
+          titulo: titulo.trim(),
+          detalle: detalle.trim(),
+          direccion: direccion.trim(),
           idServicio: servicio.idServicio,
           idCliente: getIdUsuario(req)
         },
@@ -65,14 +80,19 @@ exports.create = async (req, res) => {
 
     res.status(201).json(solicitud);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al crear la solicitud' });
+    return respondWithDatabaseError(
+      res,
+      error,
+      'Error al crear la solicitud:',
+      'No se pudo crear la solicitud. Intentá nuevamente más tarde.'
+    );
   }
 };
 
 // GET /api/solicitudes/mias  (CLIENTE)
 exports.getMias = async (req, res) => {
   try {
+    const prisma = getPrisma();
     const solicitudes = await prisma.solicitud.findMany({
       where: { idCliente: getIdUsuario(req) },
       include: {
@@ -83,14 +103,19 @@ exports.getMias = async (req, res) => {
     });
     res.json(solicitudes);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al obtener tus solicitudes' });
+    return respondWithDatabaseError(
+      res,
+      error,
+      'Error al obtener tus solicitudes:',
+      'No se pudo cargar tus solicitudes. Intentá nuevamente más tarde.'
+    );
   }
 };
 
 // GET /api/solicitudes  (TECNICO) - disponibles
 exports.getDisponibles = async (req, res) => {
   try {
+    const prisma = getPrisma();
     const idTecnico = getIdUsuario(req);
 
     const misServicios = await prisma.tecnicoServicio.findMany({
@@ -117,14 +142,19 @@ exports.getDisponibles = async (req, res) => {
     });
     res.json(solicitudes);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al obtener las solicitudes disponibles' });
+    return respondWithDatabaseError(
+      res,
+      error,
+      'Error al obtener las solicitudes disponibles:',
+      'No se pudo cargar las solicitudes disponibles. Intentá nuevamente más tarde.'
+    );
   }
 };
 
 // PATCH /api/solicitudes/:id/aceptar  (TECNICO)
 exports.aceptar = async (req, res) => {
   try {
+    const prisma = getPrisma();
     const idSolicitud = Number(req.params.id);
     if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
       return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
@@ -165,14 +195,19 @@ exports.aceptar = async (req, res) => {
     }
     res.json({ mensaje: 'Solicitud aceptada', solicitud: resultado });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al aceptar la solicitud' });
+    return respondWithDatabaseError(
+      res,
+      error,
+      'Error al aceptar la solicitud:',
+      'No se pudo aceptar la solicitud. Intentá nuevamente más tarde.'
+    );
   }
 };
 
 // PATCH /api/solicitudes/:id/rechazar  (TECNICO)
 exports.rechazar = async (req, res) => {
   try {
+    const prisma = getPrisma();
     const idSolicitud = Number(req.params.id);
     if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
       return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
@@ -229,18 +264,24 @@ exports.rechazar = async (req, res) => {
 
     res.json({ mensaje: 'Rechazo registrado', solicitud: resultado });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al rechazar la solicitud' });
+    return respondWithDatabaseError(
+      res,
+      error,
+      'Error al rechazar la solicitud:',
+      'No se pudo rechazar la solicitud. Intentá nuevamente más tarde.'
+    );
   }
 };
 
 // GET /api/solicitudes/asignadas  (TECNICO)
 exports.getAsignadas = async (req, res) => {
   try {
+    const prisma = getPrisma();
     const solicitudes = await prisma.solicitud.findMany({
       where: { idTecnico: getIdUsuario(req) },
       select: {
         idSolicitud: true,
+        titulo: true,
         detalle: true,
         direccion: true,
         estado: true,
@@ -254,14 +295,19 @@ exports.getAsignadas = async (req, res) => {
     });
     res.json({ solicitudes });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al obtener tus solicitudes asignadas' });
+    return respondWithDatabaseError(
+      res,
+      error,
+      'Error al obtener tus solicitudes asignadas:',
+      'No se pudo cargar tus solicitudes asignadas. Intentá nuevamente más tarde.'
+    );
   }
 };
 
 // PATCH /api/solicitudes/:id/iniciar  (TECNICO asignado)
 exports.iniciar = async (req, res) => {
   try {
+    const prisma = getPrisma();
     const idSolicitud = Number(req.params.id);
     if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
       return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
@@ -299,14 +345,19 @@ exports.iniciar = async (req, res) => {
     }
     res.json({ mensaje: 'Solicitud en progreso', solicitud: resultado });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al iniciar la solicitud' });
+    return respondWithDatabaseError(
+      res,
+      error,
+      'Error al iniciar la solicitud:',
+      'No se pudo iniciar la solicitud. Intentá nuevamente más tarde.'
+    );
   }
 };
 
 // PATCH /api/solicitudes/:id/completar  (TECNICO asignado)
 exports.completar = async (req, res) => {
   try {
+    const prisma = getPrisma();
     const idSolicitud = Number(req.params.id);
     if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
       return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
@@ -344,14 +395,19 @@ exports.completar = async (req, res) => {
     }
     res.json({ mensaje: 'Solicitud completada', solicitud: resultado });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al completar la solicitud' });
+    return respondWithDatabaseError(
+      res,
+      error,
+      'Error al completar la solicitud:',
+      'No se pudo completar la solicitud. Intentá nuevamente más tarde.'
+    );
   }
 };
 
 // PATCH /api/solicitudes/:id/cancelar  (CLIENTE dueño o TECNICO asignado)
 exports.cancelar = async (req, res) => {
   try {
+    const prisma = getPrisma();
     const idSolicitud = Number(req.params.id);
     if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
       return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
@@ -391,14 +447,19 @@ exports.cancelar = async (req, res) => {
     }
     res.json({ mensaje: 'Solicitud cancelada', solicitud: resultado });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al cancelar la solicitud' });
+    return respondWithDatabaseError(
+      res,
+      error,
+      'Error al cancelar la solicitud:',
+      'No se pudo cancelar la solicitud. Intentá nuevamente más tarde.'
+    );
   }
 };
 
 // GET /api/solicitudes/:id  (CLIENTE dueño, TECNICO asignado o elegible, ADMINISTRADOR)
 exports.getById = async (req, res) => {
   try {
+    const prisma = getPrisma();
     const idSolicitud = Number(req.params.id);
     if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
       return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
@@ -445,6 +506,7 @@ exports.getById = async (req, res) => {
     res.json({
       solicitud: {
         idSolicitud: solicitud.idSolicitud,
+        titulo: solicitud.titulo,
         detalle: solicitud.detalle,
         direccion: solicitud.direccion,
         estado: solicitud.estado,
@@ -458,14 +520,19 @@ exports.getById = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al obtener la solicitud' });
+    return respondWithDatabaseError(
+      res,
+      error,
+      'Error al obtener la solicitud:',
+      'No se pudo cargar la solicitud. Intentá nuevamente más tarde.'
+    );
   }
 };
 
 // GET /api/solicitudes/:id/eventos  (CLIENTE dueño, TECNICO asignado, ADMINISTRADOR)
 exports.getEventos = async (req, res) => {
   try {
+    const prisma = getPrisma();
     const idSolicitud = Number(req.params.id);
     if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
       return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
@@ -503,7 +570,11 @@ exports.getEventos = async (req, res) => {
 
     res.json({ eventos });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al obtener los eventos de la solicitud' });
+    return respondWithDatabaseError(
+      res,
+      error,
+      'Error al obtener los eventos de la solicitud:',
+      'No se pudo cargar los eventos de la solicitud. Intentá nuevamente más tarde.'
+    );
   }
 };

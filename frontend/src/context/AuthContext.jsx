@@ -1,47 +1,76 @@
-import { createContext, useContext, useState, useEffect } from 'react'
-const AuthContext = createContext()
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import api from '../services/api';
+import { clearPersistedSession, persistSession, restoreSession } from './authSession';
+
+const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [token, setToken] = useState(localStorage.getItem('token'))
-  const [loading, setLoading] = useState(true)
-  const [solicitudes, setSolicitudes] = useState()
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(() => localStorage.getItem('token'));
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    let active = true;
 
- useEffect(() => {
-  const savedUser = localStorage.getItem('user')
+    const restore = async () => {
+      const savedToken = localStorage.getItem('token');
+      if (!savedToken) {
+        if (active) {
+          setUser(null);
+          setToken(null);
+          setLoading(false);
+        }
+        return;
+      }
 
-  if (savedUser && token) {
-    setUser(JSON.parse(savedUser))
-  }
+      try {
+        const restoredUser = await restoreSession(api);
+        if (active) {
+          setUser(restoredUser);
+          setToken(savedToken);
+        }
+      } catch {
+        if (active) {
+          clearPersistedSession(localStorage);
+          setUser(null);
+          setToken(null);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
 
-  setLoading(false)
-}, [])
+    restore();
 
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const login = (userData, authToken) => {
-  setUser(userData)
-  setToken(authToken)
-
-  localStorage.setItem('token', authToken)
-  localStorage.setItem('user', JSON.stringify(userData))
-}
+    const nextUser = { ...userData, rol: userData.rol ?? userData.role };
+    persistSession(localStorage, nextUser, authToken);
+    setUser(nextUser);
+    setToken(authToken);
+  };
 
   const logout = () => {
-  setUser(null)
-  setToken(null)
-  setSolicitudes(null)
-  localStorage.removeItem('token')
-  localStorage.removeItem('user')
-}
+    clearPersistedSession(localStorage);
+    setUser(null);
+    setToken(null);
+  };
 
-  return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
-      {children}
-    </AuthContext.Provider>
-  )
+  const value = useMemo(() => ({ user, token, login, logout, loading }), [user, token, loading]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
-  return useContext(AuthContext)
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth debe usarse dentro de AuthProvider');
+  }
+  return context;
 }

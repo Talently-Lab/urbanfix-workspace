@@ -29,6 +29,13 @@ function SolicitudesDisponibles() {
       return;
     }
 
+    const confirmado = window.confirm(
+      accion === "aceptar"
+        ? `¿Confirmás aceptar la solicitud #${id}?`
+        : `¿Confirmás rechazar la solicitud #${id}?`
+    );
+    if (!confirmado) return;
+
     setProcesandoId(id);
     setAviso({ mensaje: "", tipo: "info" });
 

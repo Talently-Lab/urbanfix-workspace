@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { LoadingIndicator } from "../Components/DashboardState.js";
 
 function Register() {
   const navigate = useNavigate();
@@ -36,9 +37,11 @@ function Register() {
         const response = await api.get("/servicios");
 
         setServicios(response.data.servicios || []);
-      } catch (err) {
+      } catch (requestError) {
         setError(
-          "No se pudieron cargar los servicios. Intentá nuevamente."
+          requestError.response?.data?.mensaje
+            || requestError.response?.data?.error
+            || "No se pudieron cargar los servicios. Intentá nuevamente."
         );
       } finally {
         setLoadingServicios(false);
@@ -297,9 +300,12 @@ function Register() {
               onChange={handleChange}
               placeholder="Ingresá tu contraseña"
               required
-              minLength={6}
+              minLength={8}
               className="w-full px-4 py-3 rounded-lg border border-gray-200 outline-none focus:border-[#F26B4D] focus:ring-2 focus:ring-[#F26B4D]/10"
             />
+            <p className="mt-2 text-xs text-[#64748B]">
+              La contraseña debe tener al menos 8 caracteres.
+            </p>
           </div>
 
           {/* Selección de servicios para técnicos */}
@@ -316,9 +322,10 @@ function Register() {
               </p>
 
               {loadingServicios ? (
-                <p className="text-sm text-[#64748B]">
-                  Cargando servicios...
-                </p>
+                <LoadingIndicator
+                  label="Cargando servicios..."
+                  className="text-sm text-[#64748B]"
+                />
               ) : servicios.length === 0 ? (
                 <p className="text-sm text-[#64748B]">
                   No hay servicios disponibles.
@@ -387,7 +394,12 @@ function Register() {
             className="w-full py-3.5 rounded-xl bg-[#F26B4D] text-white font-bold hover:bg-[#df573b] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading
-              ? "Creando cuenta..."
+              ? (
+                <span className="inline-flex items-center justify-center gap-2" role="status">
+                  <span aria-hidden="true" className="h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent" />
+                  Creando cuenta...
+                </span>
+              )
               : rol === "TECNICO"
                 ? "Crear cuenta de técnico"
                 : "Crear cuenta"}

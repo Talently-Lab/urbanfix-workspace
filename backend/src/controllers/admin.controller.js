@@ -1,15 +1,10 @@
-const { PrismaClient } = require('@prisma/client');
-const { PrismaPg } = require('@prisma/adapter-pg');
-
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-});
-
-const prisma = new PrismaClient({ adapter });
+const getPrisma = require('../lib/prisma');
+const { respondWithDatabaseError } = require('../lib/errors');
 
 // GET /api/admin/usuarios  (ADMINISTRADOR)
 exports.getUsuarios = async (req, res) => {
   try {
+    const prisma = getPrisma();
     const usuarios = await prisma.usuario.findMany({
       select: {
         idUsuario: true,
@@ -23,8 +18,12 @@ exports.getUsuarios = async (req, res) => {
     });
     res.json({ usuarios });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al obtener los usuarios' });
+    return respondWithDatabaseError(
+      res,
+      error,
+      'Error al obtener los usuarios:',
+      'No se pudo cargar la lista de usuarios. Intentá nuevamente más tarde.'
+    );
   }
 };
 
@@ -40,6 +39,7 @@ const ESTADOS = [
 // GET /api/admin/solicitudes?estado=PENDIENTE  (ADMINISTRADOR)
 exports.getSolicitudes = async (req, res) => {
   try {
+    const prisma = getPrisma();
     const { estado } = req.query;
     let where = {};
 
@@ -57,6 +57,7 @@ exports.getSolicitudes = async (req, res) => {
       where,
       select: {
         idSolicitud: true,
+        titulo: true,
         detalle: true,
         estado: true,
         fechaCreacion: true,
@@ -85,14 +86,19 @@ exports.getSolicitudes = async (req, res) => {
 
     res.json({ solicitudes });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al obtener las solicitudes' });
+    return respondWithDatabaseError(
+      res,
+      error,
+      'Error al obtener las solicitudes:',
+      'No se pudo cargar las solicitudes. Intentá nuevamente más tarde.'
+    );
   }
 };
 
 // PATCH /api/admin/solicitudes/:id/cancelar  (ADMINISTRADOR)
 exports.cancelarSolicitud = async (req, res) => {
   try {
+    const prisma = getPrisma();
     const idSolicitud = Number(req.params.id);
     if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
       return res
@@ -135,14 +141,19 @@ exports.cancelarSolicitud = async (req, res) => {
     }
     res.json({ mensaje: 'Solicitud cancelada', solicitud: resultado });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al cancelar la solicitud' });
+    return respondWithDatabaseError(
+      res,
+      error,
+      'Error al cancelar la solicitud:',
+      'No se pudo cancelar la solicitud. Intentá nuevamente más tarde.'
+    );
   }
 };
 
 // Get /api/admin/metricas  (ADMINISTRADOR)
 exports.getMetricas = async (req, res) => {
   try {
+    const prisma = getPrisma();
     const matchRate = await prisma.$queryRaw`SELECT
       COUNT(*) FILTER (
         WHERE s."fechaAceptacion" IS NOT NULL
@@ -299,7 +310,11 @@ exports.getMetricas = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al obtener las metricas' });
+    return respondWithDatabaseError(
+      res,
+      error,
+      'Error al obtener las métricas:',
+      'No se pudo cargar las métricas. Intentá nuevamente más tarde.'
+    );
   }
 };

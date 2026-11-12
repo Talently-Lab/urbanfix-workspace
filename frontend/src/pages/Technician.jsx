@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import api from "../services/api.js";
 import Header from "../Components/Header";
 import SolicitudCard from "./Cliente/SolicitudCard";
+import { LoadingIndicator } from "../Components/DashboardState.js";
 
 function Technician() {
   const { token } = useAuth();
@@ -15,8 +16,6 @@ function Technician() {
   // Obtener solicitudes
   const getSolicitudes = useCallback(async () => {
     try {
-      setError("");
-
       const respuesta = await api.get("/solicitudes", {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -31,6 +30,7 @@ function Technician() {
           ? data.solicitudes
           : [];
 
+      setError("");
       setSolicitudes(listaSolicitudes);
     } catch (err) {
       console.error("Error al obtener solicitudes:", err);
@@ -45,12 +45,7 @@ function Technician() {
   }, [token]);
 
   useEffect(() => {
-    if (!token) {
-      setLoading(false);
-      setError("No hay una sesión activa. Iniciá sesión nuevamente.");
-      return;
-    }
-
+    if (!token) return;
     getSolicitudes();
   }, [token, getSolicitudes]);
 
@@ -135,7 +130,7 @@ function Technician() {
     <div className="min-h-screen bg-urban-fondo">
       <Header />
 
-      <main className="mx-auto max-w-7xl px-6 py-8">
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Encabezado */}
         <section className="mb-8">
           <h1 className="text-3xl font-extrabold text-urban-principal">
@@ -165,10 +160,11 @@ function Technician() {
 
         {/* Cargando */}
         {loading && (
-          <div className="rounded-xl bg-white p-8 text-center shadow-sm">
-            <p className="font-medium text-urban-principal">
-              Cargando solicitudes...
-            </p>
+          <div className="rounded-xl bg-white p-8 shadow-sm">
+            <LoadingIndicator
+              label="Cargando solicitudes..."
+              className="justify-center font-medium text-urban-principal"
+            />
           </div>
         )}
 
@@ -184,6 +180,7 @@ function Technician() {
               type="button"
               onClick={() => {
                 setLoading(true);
+                setError("");
                 getSolicitudes();
               }}
               className="mt-4 rounded-lg bg-urban-button px-4 py-2 font-semibold text-white hover:brightness-90"
@@ -228,7 +225,6 @@ function Technician() {
 
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
                 {solicitudesPendientes.map((solicitud) => {
-                  const id = solicitud.idSolicitud ?? solicitud.id;
                   return (
                   <SolicitudCard
                     key={solicitud.idSolicitud ?? solicitud.id}

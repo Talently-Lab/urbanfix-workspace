@@ -1,16 +1,14 @@
 import { useEffect, useState } from "react";
 import api from "../services/api.js";
+import { LoadingIndicator } from "./DashboardState.js";
 
 function MostrarTecnicos({ tecnicoId }) {
   const [tecnico, setTecnico] = useState(null);
-  const [cargando, setCargando] = useState(true);
+  const [cargando, setCargando] = useState(Boolean(tecnicoId));
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!tecnicoId) {
-      setCargando(false);
-      return;
-    }
+    if (!tecnicoId) return;
 
     const obtenerTecnico = async () => {
       try {
@@ -33,8 +31,17 @@ function MostrarTecnicos({ tecnicoId }) {
     obtenerTecnico();
   }, [tecnicoId]);
 
+  if (!tecnicoId) {
+    return <p className="text-sm text-slate-500">No se seleccionó un servicio.</p>;
+  }
+
   if (cargando) {
-    return <p className="text-sm text-slate-500">Cargando técnico...</p>;
+    return (
+      <LoadingIndicator
+        label="Cargando técnico..."
+        className="text-sm text-slate-500"
+      />
+    );
   }
 
   if (error || !tecnico) {
