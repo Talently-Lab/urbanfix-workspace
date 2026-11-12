@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import api from "../../Services/api.js";
+import api from "../../services/api.js";
 
 function CrearSolicitud() {
   const navigate = useNavigate();

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import api from "../Services/api.js";
+import api from "../services/api.js";
 
 function MostrarTecnicos({ tecnicoId }) {
   const [tecnico, setTecnico] = useState(null);

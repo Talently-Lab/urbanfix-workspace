@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import SolicitudCard from "./Cliente/SolicitudCard";
-import api from "../Services/api.js"
+import api from "../services/api.js"
 
 function Client() {
   const navigate = useNavigate();
