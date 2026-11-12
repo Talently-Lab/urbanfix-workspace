@@ -1,132 +1,414 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import api from '../services/api'
+
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import api from "../services/api";
 
 function Register() {
+  const navigate = useNavigate();
+
+  const [rol, setRol] = useState("CLIENTE");
+
   const [form, setForm] = useState({
-    nombre: '',
-    apellido: '',
-    email: '',
-    password: '',
-    numeroTelefono: '',
-    rol: 'CLIENTE',
-    idServicios: '',
-  })
-  const [error, setError] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const navigate = useNavigate()
+    nombre: "",
+    apellido: "",
+    email: "",
+    password: "",
+    numeroTelefono: "",
+  });
 
-  const updateField = (event) => {
-    setForm((current) => ({ ...current, [event.target.name]: event.target.value }))
-  }
+  const [servicios, setServicios] = useState([]);
+  const [serviciosSeleccionados, setServiciosSeleccionados] = useState([]);
 
-  const handleSubmit = async (event) => {
-    event.preventDefault()
-    setError('')
+  const [loadingServicios, setLoadingServicios] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-    const idServicios = form.rol === 'TECNICO'
-      ? form.idServicios.split(',').map((id) => Number(id.trim()))
-      : undefined
+  // Obtener servicios cuando se elige ser técnico
+  useEffect(() => {
+    if (rol !== "TECNICO") return;
 
-    if (
-      form.rol === 'TECNICO' &&
-      (!form.idServicios.trim() ||
-        idServicios.some((id) => !Number.isInteger(id) || id <= 0))
-    ) {
-      setError('Ingresá los IDs de servicios válidos, separados por comas.')
-      return
-    }
+    const obtenerServicios = async () => {
+      try {
+        setLoadingServicios(true);
+        setError("");
 
-    setSubmitting(true)
-    try {
-      await api.post('/auth/register', {
-        nombre: form.nombre.trim(),
-        apellido: form.apellido.trim(),
-        email: form.email.trim(),
-        password: form.password,
-        numeroTelefono: form.numeroTelefono.trim() || undefined,
-        rol: form.rol,
-        ...(idServicios && { idServicios }),
-      })
-      navigate('/login', {
-        replace: true,
-        state: { message: 'La cuenta se creó correctamente. Ya podés iniciar sesión.' },
-      })
-    } catch (requestError) {
-      if (requestError.response?.status === 409) {
-        setError('Ese email ya está registrado.')
-      } else if (requestError.response?.status === 400) {
-        setError(requestError.response.data?.error || 'Revisá los datos ingresados.')
-      } else if (requestError.response) {
-        setError(requestError.response.data?.error || 'No se pudo crear la cuenta.')
-      } else {
-        setError('No se pudo conectar con el servidor. Verificá que el backend esté iniciado.')
+        const response = await api.get("/servicios");
+
+        setServicios(response.data.servicios || []);
+      } catch (err) {
+        setError(
+          "No se pudieron cargar los servicios. Intentá nuevamente."
+        );
+      } finally {
+        setLoadingServicios(false);
       }
-    } finally {
-      setSubmitting(false)
-    }
-  }
+    };
 
-  const inputClass = 'w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none'
+    obtenerServicios();
+  }, [rol]);
+
+  // Manejar cambios en los inputs
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // Seleccionar o quitar servicios
+  const handleServicio = (idServicio) => {
+    setServiciosSeleccionados((prev) =>
+      prev.includes(idServicio)
+        ? prev.filter((id) => id !== idServicio)
+        : [...prev, idServicio]
+    );
+  };
+
+  // Enviar formulario
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    setError("");
+    setSuccess("");
+
+    if (rol === "TECNICO" && serviciosSeleccionados.length === 0) {
+      setError("Tenés que seleccionar al menos un servicio.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const datosRegistro = {
+        ...form,
+        rol,
+      };
+
+      // Los técnicos deben enviar los servicios seleccionados
+      if (rol === "TECNICO") {
+        datosRegistro.idServicios = serviciosSeleccionados;
+      }
+
+      await api.post("/auth/register", datosRegistro);
+
+      setSuccess("¡Tu cuenta fue creada correctamente!");
+
+      setTimeout(() => {
+        navigate("/login", {
+          state: {
+            mensaje: "Cuenta creada correctamente. Iniciá sesión.",
+          },
+        });
+      }, 1500);
+
+    } catch (err) {
+      setError(
+        err.response?.data?.mensaje ||
+        err.response?.data?.error ||
+        "No se pudo crear la cuenta. Revisá tus datos."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-12 text-slate-100">
-      <section className="mx-auto max-w-xl rounded-[32px] border border-slate-800 bg-slate-900/80 p-6 shadow-2xl sm:p-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.25em] text-cyan-300">UrbanFix</p>
-        <h1 className="mt-2 text-3xl font-bold text-white">Crear cuenta</h1>
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block text-sm text-slate-200">
-              Nombre
-              <input className={`${inputClass} mt-2`} name="nombre" autoComplete="given-name" value={form.nombre} onChange={updateField} required maxLength={100} />
-            </label>
-            <label className="block text-sm text-slate-200">
-              Apellido
-              <input className={`${inputClass} mt-2`} name="apellido" autoComplete="family-name" value={form.apellido} onChange={updateField} required maxLength={100} />
-            </label>
+    <main className="min-h-screen bg-[#F1F6FA] flex items-center justify-center px-4 py-10">
+
+      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl shadow-[#08284F]/10 p-6 sm:p-10">
+
+        {/* Logo */}
+        <Link to="/" className="text-3xl font-extrabold text-[#08284F]">
+          Urban<span className="text-[#F26B4D]">Fix.</span>
+        </Link>
+
+        {/* Encabezado */}
+        <div className="mt-8 mb-7">
+          <h1 className="text-3xl font-bold text-[#08284F]">
+            Crear una cuenta
+          </h1>
+
+          <p className="text-[#64748B] mt-2">
+            Unite a UrbanFix y empezá hoy mismo.
+          </p>
+        </div>
+
+        {/* Selección de rol */}
+        <div className="mb-8">
+
+          <h2 className="text-sm font-bold text-[#08284F] mb-3">
+            ¿Cómo querés utilizar UrbanFix?
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            {/* Cliente */}
+            <button
+              type="button"
+              onClick={() => {
+                setRol("CLIENTE");
+                setServiciosSeleccionados([]);
+                setError("");
+              }}
+              className={`text-left p-5 rounded-xl border-2 transition-all ${
+                rol === "CLIENTE"
+                  ? "border-[#F26B4D] bg-[#FFF7F4]"
+                  : "border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              <div className="text-2xl mb-3">🏠</div>
+
+              <h3 className="font-bold text-[#08284F]">
+                Busco ayuda
+              </h3>
+
+              <p className="text-sm text-[#64748B] mt-1">
+                Quiero encontrar profesionales para mi hogar.
+              </p>
+
+              {rol === "CLIENTE" && (
+                <span className="text-xs font-bold text-[#F26B4D] mt-3 block">
+                  ✓ Seleccionado
+                </span>
+              )}
+            </button>
+
+            {/* Técnico */}
+            <button
+              type="button"
+              onClick={() => {
+                setRol("TECNICO");
+                setError("");
+              }}
+              className={`text-left p-5 rounded-xl border-2 transition-all ${
+                rol === "TECNICO"
+                  ? "border-[#F26B4D] bg-[#FFF7F4]"
+                  : "border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              <div className="text-2xl mb-3">🔧</div>
+
+              <h3 className="font-bold text-[#08284F]">
+                Quiero ser técnico
+              </h3>
+
+              <p className="text-sm text-[#64748B] mt-1">
+                Quiero ofrecer mis servicios profesionales.
+              </p>
+
+              {rol === "TECNICO" && (
+                <span className="text-xs font-bold text-[#F26B4D] mt-3 block">
+                  ✓ Seleccionado
+                </span>
+              )}
+            </button>
+
           </div>
-          <label className="block text-sm text-slate-200">
-            Correo
-            <input className={`${inputClass} mt-2`} type="email" name="email" autoComplete="email" value={form.email} onChange={updateField} required maxLength={254} />
-          </label>
-          <label className="block text-sm text-slate-200">
-            Contraseña
-            <input className={`${inputClass} mt-2`} type="password" name="password" autoComplete="new-password" value={form.password} onChange={updateField} required minLength={8} />
-            <span className="mt-1 block text-xs text-slate-400">Debe tener al menos 8 caracteres.</span>
-          </label>
-          <label className="block text-sm text-slate-200">
-            Teléfono (opcional)
-            <input className={`${inputClass} mt-2`} type="tel" name="numeroTelefono" autoComplete="tel" value={form.numeroTelefono} onChange={updateField} />
-          </label>
-          <label className="block text-sm text-slate-200">
-            Tipo de cuenta
-            <select className={`${inputClass} mt-2`} name="rol" value={form.rol} onChange={updateField}>
-              <option value="CLIENTE">Cliente</option>
-              <option value="TECNICO">Técnico</option>
-            </select>
-          </label>
-          {form.rol === 'TECNICO' && (
-            <label className="block text-sm text-slate-200">
-              IDs de servicios
-              <input className={`${inputClass} mt-2`} name="idServicios" inputMode="numeric" value={form.idServicios} onChange={updateField} required placeholder="Ej.: 1, 3" />
-              <span className="mt-1 block text-xs text-slate-400">Ingresá los IDs de servicios existentes separados por comas.</span>
+        </div>
+
+        {/* Formulario */}
+        <form onSubmit={handleSubmit} className="space-y-5">
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            {/* Nombre */}
+            <div>
+              <label className="block text-sm font-semibold text-[#08284F] mb-2">
+                Nombre
+              </label>
+
+              <input
+                type="text"
+                name="nombre"
+                value={form.nombre}
+                onChange={handleChange}
+                placeholder="Tu nombre"
+                required
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 outline-none focus:border-[#F26B4D] focus:ring-2 focus:ring-[#F26B4D]/10"
+              />
+            </div>
+
+            {/* Apellido */}
+            <div>
+              <label className="block text-sm font-semibold text-[#08284F] mb-2">
+                Apellido
+              </label>
+
+              <input
+                type="text"
+                name="apellido"
+                value={form.apellido}
+                onChange={handleChange}
+                placeholder="Tu apellido"
+                required
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 outline-none focus:border-[#F26B4D] focus:ring-2 focus:ring-[#F26B4D]/10"
+              />
+            </div>
+
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-semibold text-[#08284F] mb-2">
+              Correo electrónico
             </label>
+
+            <input
+              type="email"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              placeholder="ejemplo@correo.com"
+              required
+              className="w-full px-4 py-3 rounded-lg border border-gray-200 outline-none focus:border-[#F26B4D] focus:ring-2 focus:ring-[#F26B4D]/10"
+            />
+          </div>
+
+          {/* Teléfono */}
+          <div>
+            <label className="block text-sm font-semibold text-[#08284F] mb-2">
+              Número de teléfono
+            </label>
+
+            <input
+              type="tel"
+              name="numeroTelefono"
+              value={form.numeroTelefono}
+              onChange={handleChange}
+              placeholder="Ej: 1123456789"
+              required
+              className="w-full px-4 py-3 rounded-lg border border-gray-200 outline-none focus:border-[#F26B4D] focus:ring-2 focus:ring-[#F26B4D]/10"
+            />
+          </div>
+
+          {/* Contraseña */}
+          <div>
+            <label className="block text-sm font-semibold text-[#08284F] mb-2">
+              Contraseña
+            </label>
+
+            <input
+              type="password"
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              placeholder="Ingresá tu contraseña"
+              required
+              minLength={6}
+              className="w-full px-4 py-3 rounded-lg border border-gray-200 outline-none focus:border-[#F26B4D] focus:ring-2 focus:ring-[#F26B4D]/10"
+            />
+          </div>
+
+          {/* Selección de servicios para técnicos */}
+          {rol === "TECNICO" && (
+            <div className="border-t border-gray-100 pt-6">
+
+              <h2 className="text-lg font-bold text-[#08284F]">
+                Tus especialidades
+              </h2>
+
+              <p className="text-sm text-[#64748B] mt-1 mb-4">
+                Seleccioná los servicios que ofrecés.
+                Podés elegir más de uno.
+              </p>
+
+              {loadingServicios ? (
+                <p className="text-sm text-[#64748B]">
+                  Cargando servicios...
+                </p>
+              ) : servicios.length === 0 ? (
+                <p className="text-sm text-[#64748B]">
+                  No hay servicios disponibles.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                  {servicios.map((servicio) => {
+                    const id = servicio.idServicio ?? servicio.id;
+                    const nombre =
+                      servicio.nombreServicio ?? servicio.nombre;
+
+                    const seleccionado =
+                      serviciosSeleccionados.includes(id);
+
+                    return (
+                      <label
+                        key={id}
+                        className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all ${
+                          seleccionado
+                            ? "border-[#F26B4D] bg-[#FFF7F4]"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={seleccionado}
+                          onChange={() => handleServicio(id)}
+                          className="w-4 h-4 accent-[#F26B4D]"
+                        />
+
+                        <span className="text-sm font-medium text-[#08284F]">
+                          {nombre}
+                        </span>
+                      </label>
+                    );
+                  })}
+
+                </div>
+              )}
+
+              <p className="text-xs text-[#64748B] mt-3">
+                Servicios seleccionados: {serviciosSeleccionados.length}
+              </p>
+
+            </div>
           )}
+
+          {/* Mensajes */}
           {error && (
-            <p className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200" role="alert">
+            <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
               {error}
-            </p>
+            </div>
           )}
-          <button className="w-full rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-3 font-semibold text-white disabled:opacity-60" type="submit" disabled={submitting}>
-            {submitting ? 'Creando cuenta...' : 'Crear cuenta'}
+
+          {success && (
+            <div className="p-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
+              {success}
+            </div>
+          )}
+
+          {/* Botón */}
+          <button
+            type="submit"
+            disabled={loading || (rol === "TECNICO" && loadingServicios)}
+            className="w-full py-3.5 rounded-xl bg-[#F26B4D] text-white font-bold hover:bg-[#df573b] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading
+              ? "Creando cuenta..."
+              : rol === "TECNICO"
+                ? "Crear cuenta de técnico"
+                : "Crear cuenta"}
           </button>
+
         </form>
-        <p className="mt-5 text-center text-sm text-slate-400">
-          ¿Ya tenés cuenta? <Link className="font-semibold text-cyan-300 hover:text-cyan-200" to="/login">Iniciá sesión</Link>
+
+        {/* Login */}
+        <p className="text-center text-sm text-[#64748B] mt-7">
+          ¿Ya tenés una cuenta?{" "}
+          <Link
+            to="/login"
+            className="font-bold text-[#F26B4D] hover:underline"
+          >
+            Iniciar sesión
+          </Link>
         </p>
-      </section>
+
+      </div>
     </main>
-  )
+  );
 }
 
-export default Register
+export default Register;
