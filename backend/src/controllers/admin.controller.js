@@ -289,7 +289,7 @@ exports.getMetricas = async (req, res) => {
           activationRate[0].activation_rate !== null
             ? parseInt(activationRate[0].activation_rate)
             : null,
-        dau: dau[0].dau ? Number(dau[0].dau): null,
+        dau: dau[0].dau ? Number(dau[0].dau): 0,
         abandonoSolicitud: {
           totalIntentos: Number(requestAbandonmentRate[0].total_intentos),
           totalCompletados: Number(requestAbandonmentRate[0].total_completados),
