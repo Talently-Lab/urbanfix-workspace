@@ -83,8 +83,8 @@ function Login() {
 
       if (userData.role === "client") {
         navigate("/Client/dashboard");
-      } else if (userData.role === "admin") {
-        navigate("/Admin");
+      } else if (userData.role === "ADMINISTRADOR") {
+        navigate("/ADMINISTRADOR/dashboard");
       } else {
         navigate("/Technician/dashboard");
       }

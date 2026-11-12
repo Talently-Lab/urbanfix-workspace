@@ -29,7 +29,7 @@ function App() {
           <Route path='/Register' element={<Register></Register>}/>
           <Route path="/Client/dashboard" element={ <ProtectedRoute allowedRole="client"><Client /> </ProtectedRoute>}/>
           <Route path="/Client/solicitud/:id" element={<ProtectedRoute allowedRole="client"><SolicitudCardDetalle /></ProtectedRoute>}></Route>
-          <Route path="/Admin" element={ <ProtectedRoute allowedRole="admin"> <Admin /> </ProtectedRoute>}/>
+          <Route path="/ADMINISTRADOR/dashboard" element={ <ProtectedRoute allowedRole="ADMINISTRADOR"> <Admin /> </ProtectedRoute>}/>
           <Route path='Client/solicitud' element={<ProtectedRoute allowedRole="client"><CrearSolicitud/></ProtectedRoute>}/>
           <Route path='Client/servicio/:servicio' element={<ProtectedRoute allowedRole="client"><MostrarTecnicos/></ProtectedRoute>}/>
           <Route path='Technician/dashboard' element={<ProtectedRoute allowedRole="technician"><Dashboard /></ProtectedRoute>}/>
