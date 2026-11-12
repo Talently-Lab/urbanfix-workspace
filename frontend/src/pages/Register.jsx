@@ -1,13 +1,47 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../Services/api";
 
 function Register() {
   const navigate = useNavigate();
-
   const [rol, setRol] = useState("CLIENTE");
+  
+  // Evita registrar el evento dos veces por React StrictMode
+  const eventoRegistrado = useRef(false);
 
+  // Registrar la visita a la page Register
+  useEffect(() => {
+    if (eventoRegistrado.current) return;
+
+    eventoRegistrado.current = true;
+
+    const registrarVistaRegister = async () => {
+      try {
+        let sesionId = sessionStorage.getItem("sesionId");
+
+        if (!sesionId) {
+          sesionId = crypto.randomUUID();
+          sessionStorage.setItem("sesionId", sesionId);
+        }
+
+        await api.post("/eventos", {
+          nombreEvento: "VISTA_REGISTRO",
+          sesionId,
+        });
+
+        console.log("Evento VISTA_REGISTRO registrado");
+      } catch (error) {
+        console.error(
+          "Error al registrar VISTA_REGISTRO:",
+          error.response?.data || error.message
+        );
+      }
+    };
+
+    registrarVistaRegister();
+  }, []);
+
+  // Datos del Registro
   const [form, setForm] = useState({
     nombre: "",
     apellido: "",
