@@ -308,10 +308,10 @@ exports.getMetricas = async (req, res) => {
 exports.crearServicio = async (req, res) => {
   try {
     const nombreServicio = String(req.body.nombreServicio || '').trim();
-    const descripcion = req.body.descripcion ? String(req.body.descripcion).trim() : null;
+    const descripcion = String(req.body.descripcion || '').trim();
 
-    if (!nombreServicio || nombreServicio.length > 100) {
-      return res.status(400).json({ error: 'Datos inválidos: nombreServicio es obligatorio (máximo 100 caracteres)' });
+    if (!nombreServicio || nombreServicio.length > 100 || !descripcion) {
+      return res.status(400).json({ error: 'Datos inválidos: nombreServicio y descripcion son obligatorios (nombre máximo 100 caracteres)' });
     }
 
     const existe = await prisma.servicio.findFirst({
