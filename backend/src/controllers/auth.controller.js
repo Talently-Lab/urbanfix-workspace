@@ -9,78 +9,55 @@ const adapter = new PrismaPg({
 
 const prisma = new PrismaClient({ adapter });
 
+// REGISTRO DE USUARIOS
 exports.register = async (req, res) => {
   try {
     const { email, password, nombre, apellido, rol, numeroTelefono, idServicios } = req.body;
 
     if (!email || !password || !nombre || !apellido || !rol) {
-      return res.status(400).json({
-        error: 'Todos los campos obligatorios son requeridos',
-      });
+      return res.status(400).json({ error: 'Todos los campos obligatorios son requeridos' });
     }
 
     if (password.length < 8) {
-      return res.status(400).json({
-        error: 'La contraseña debe tener al menos 8 caracteres',
-      });
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
     }
 
     const rolesValidos = ['TECNICO', 'CLIENTE'];
-
     if (!rolesValidos.includes(rol)) {
-      return res.status(400).json({
-        error: 'Rol inválido',
-      });
+      return res.status(400).json({ error: 'Rol inválido' });
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const emailNormalizado = email.trim().toLowerCase()
-
+    const emailNormalizado = email.trim().toLowerCase();
     if (!emailRegex.test(emailNormalizado)) {
-      return res.status(400).json({
-        error: "El formato del email no es válido"
-      })
+      return res.status(400).json({ error: 'El formato del email no es válido' });
     }
 
     const existing = await prisma.usuario.findUnique({
       where: { email: emailNormalizado },
     });
-
     if (existing) {
-      return res.status(409).json({
-        error: 'El email ya está registrado',
-      });
+      return res.status(409).json({ error: 'El email ya está registrado' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-
     let usuario = {};
 
     if (rol === 'TECNICO') {
       if (!Array.isArray(idServicios) || idServicios.length === 0) {
-        return res.status(400).json({
-          error: 'El técnico debe ofrecer al menos un servicio',
-        });
+        return res.status(400).json({ error: 'El técnico debe ofrecer al menos un servicio' });
       }
 
       if (!idServicios.every((id) => Number.isInteger(id))) {
-        return res.status(400).json({
-          error: 'Los IDs de servicios deben ser numeros enteros',
-        });
+        return res.status(400).json({ error: 'Los IDs de servicios deben ser numeros enteros' });
       }
 
       const servicios = await prisma.servicio.findMany({
-        where: {
-          idServicio: {
-            in: idServicios,
-          },
-        },
+        where: { idServicio: { in: idServicios } },
       });
 
       if (servicios.length !== idServicios.length) {
-        return res.status(400).json({
-          error: 'Uno o mas servicios no existen',
-        });
+        return res.status(400).json({ error: 'Uno o mas servicios no existen' });
       }
 
       usuario = await prisma.$transaction(async (tx) => {
@@ -109,12 +86,13 @@ exports.register = async (req, res) => {
             idServicio,
           })),
         });
+
         return nuevoUsuario;
       });
     } else {
       usuario = await prisma.usuario.create({
         data: {
-          email,
+          email: emailNormalizado,
           password: hashedPassword,
           nombre,
           apellido,
@@ -133,37 +111,29 @@ exports.register = async (req, res) => {
     }
 
     const token = jwt.sign(
-      {
-        userId: usuario.idUsuario,
-        role: usuario.rol,
-      },
+      { userId: usuario.idUsuario, role: usuario.rol },
       process.env.JWT_SECRET,
-      {
-        expiresIn: '7d',
-      },
+      { expiresIn: '7d' }
     );
 
-    res.status(201).json({
-      usuario,
-      token,
-    });
+    res.status(201).json({ usuario, token });
   } catch (error) {
     console.error(error);
-
-    res.status(500).json({
-      error: 'Error interno del servidor',
-    });
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 };
 
+// INICIO DE SESIÓN
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, sesionId } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({
-        error: 'Email y contraseña son requeridos',
-      });
+      return res.status(400).json({ error: 'Email y contraseña son requeridos' });
+    }
+
+    if (sesionId !== undefined && sesionId !== null && (typeof sesionId !== 'string' || sesionId.length > 100)) {
+      return res.status(400).json({ error: 'sesionId debe ser texto de hasta 100 caracteres' });
     }
 
     const usuario = await prisma.usuario.findUnique({
@@ -171,38 +141,33 @@ exports.login = async (req, res) => {
     });
 
     if (!usuario) {
-      return res.status(401).json({
-        error: 'Email o contraseña incorrectos',
-      });
+      return res.status(401).json({ error: 'Email o contraseña incorrectos' });
     }
 
     const passwordValida = await bcrypt.compare(password, usuario.password);
-
     if (!passwordValida) {
-      return res.status(401).json({
-        error: 'Email o contraseña incorrectos',
-      });
+      return res.status(401).json({ error: 'Email o contraseña incorrectos' });
     }
 
+    // Actualiza último login y registra el evento LOGIN_EXITOSO con sesionId
     await prisma.$transaction([
       prisma.usuario.update({
         where: { idUsuario: usuario.idUsuario },
         data: { ultimoLogin: new Date() },
       }),
       prisma.evento.create({
-        data: { nombreEvento: 'LOGIN_EXITOSO', idUsuario: usuario.idUsuario },
+        data: {
+          nombreEvento: 'LOGIN_EXITOSO',
+          idUsuario: usuario.idUsuario,
+          sesionId: sesionId || null,
+        },
       }),
     ]);
 
     const token = jwt.sign(
-      {
-        userId: usuario.idUsuario,
-        role: usuario.rol,
-      },
+      { userId: usuario.idUsuario, role: usuario.rol },
       process.env.JWT_SECRET,
-      {
-        expiresIn: '7d',
-      },
+      { expiresIn: '7d' }
     );
 
     res.json({
@@ -218,21 +183,19 @@ exports.login = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-
-    res.status(500).json({
-      error: 'Error interno del servidor',
-    });
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 };
 
+// ==========================================
+// OBTENER PERFIL ACTUAL
+// ==========================================
 exports.me = async (req, res) => {
   try {
     const idUsuario = req.user ? req.user.userId : null;
 
     if (!idUsuario) {
-      return res.status(401).json({
-        error: 'token ausente o inválido',
-      });
+      return res.status(401).json({ error: 'token ausente o inválido' });
     }
 
     const usuario = await prisma.usuario.findUnique({
@@ -249,5 +212,6 @@ exports.me = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 };
