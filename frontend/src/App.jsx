@@ -1,5 +1,5 @@
 import { Route, Routes } from 'react-router-dom'
-import { TecnicoProvider } from "./context/TecnicoContext";
+
 
 //Paginas Utilizadas
 import Technician from './pages/Technician'

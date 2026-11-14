@@ -7,6 +7,23 @@ const obtenerLista = (data, propiedad) => {
   return data?.[propiedad] || [];
 };
 
+// COLORES SEGÚN EL ESTADO
+const obtenerEstiloEstado = (estado) => {
+  const estilos = {
+    PENDIENTE: "bg-amber-100 text-amber-700 border-amber-200",
+    ACEPTADA: "bg-blue-100 text-blue-700 border-blue-200",
+    EN_PROGRESO: "bg-purple-100 text-purple-700 border-purple-200",
+    COMPLETADA: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    RECHAZADA: "bg-red-100 text-red-700 border-red-200",
+    CANCELADA: "bg-slate-100 text-slate-600 border-slate-200",
+  };
+
+  return (
+    estilos[estado?.toUpperCase()] ||
+    "bg-gray-100 text-gray-600 border-gray-200"
+  );
+};
+
 const DashboardListado = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -16,6 +33,7 @@ const DashboardListado = () => {
   const [datos, setDatos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [filtroEstado, setFiltroEstado] = useState("TODOS");
 
   const configuracion = {
     clientes: {
@@ -39,6 +57,7 @@ const DashboardListado = () => {
   const esSolicitud = tipo === "solicitudes";
   const titulo = configuracion[tipo] || configuracion.usuarios;
 
+  // CARGAR DATOS
   useEffect(() => {
     const cargarDatos = async () => {
       try {
@@ -67,7 +86,6 @@ const DashboardListado = () => {
         }
 
         setDatos(lista);
-
       } catch (error) {
         console.error("Error al obtener listado:", error);
         setError("No se pudieron cargar los datos.");
@@ -85,6 +103,7 @@ const DashboardListado = () => {
     }
   }, [tipo, esSolicitud]);
 
+  // COLUMNAS DE USUARIOS
   const columnasUsuarios = [
     { titulo: "ID", valor: (u) => u.idUsuario ?? u.id },
     { titulo: "Nombre", valor: (u) => u.nombre },
@@ -94,10 +113,15 @@ const DashboardListado = () => {
     { titulo: "Rol", valor: (u) => u.rol },
   ];
 
+  // COLUMNAS DE SOLICITUDES
   const columnasSolicitudes = [
     { titulo: "ID", valor: (s) => s.idSolicitud ?? s.id },
     { titulo: "Detalle", valor: (s) => s.detalle },
-    { titulo: "Servicio", valor: (s) => s.servicio?.nombreServicio ?? s.nombreServicio },
+    {
+      titulo: "Servicio",
+      valor: (s) =>
+        s.servicio?.nombreServicio ?? s.nombreServicio,
+    },
     { titulo: "Estado", valor: (s) => s.estado },
     { titulo: "Dirección", valor: (s) => s.direccion },
   ];
@@ -106,24 +130,35 @@ const DashboardListado = () => {
     ? columnasSolicitudes
     : columnasUsuarios;
 
+  // FILTRAR POR ESTADO
+  const datosFiltrados = esSolicitud
+    ? datos.filter((solicitud) => {
+        if (filtroEstado === "TODOS") return true;
+
+        return (
+          solicitud.estado?.toUpperCase() === filtroEstado
+        );
+      })
+    : datos;
+
   return (
-    <main className="min-h-screen bg-[#F1F6FA] p-6 md:p-10">
+    <main className="min-h-screen bg-[#F1F6FA] p-4 md:p-8">
 
       {/* ENCABEZADO */}
-      <div className="mb-8">
+      <div className="mb-6">
         <button
           type="button"
           onClick={() => navigate("/ADMINISTRADOR/dashboard")}
-          className="mb-5 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#08284F] shadow-sm transition hover:bg-slate-100"
+          className="mb-4 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#08284F] shadow-sm transition hover:bg-slate-100"
         >
           ← Volver al dashboard
         </button>
 
-        <span className="block text-sm font-semibold uppercase tracking-wider text-[#F26B4D]">
+        <span className="block text-xs font-semibold uppercase tracking-wider text-[#F26B4D]">
           Administración / Listados
         </span>
 
-        <h1 className="mt-2 text-3xl font-bold text-[#08284F]">
+        <h1 className="mt-2 text-2xl font-bold text-[#08284F] md:text-3xl">
           {titulo.titulo}
         </h1>
 
@@ -133,40 +168,82 @@ const DashboardListado = () => {
       </div>
 
       {/* TABLA */}
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
 
-        <div className="flex items-center justify-between border-b border-slate-100 p-5">
-          <h2 className="font-semibold text-[#08284F]">
+        {/* FILTRO DE ESTADO */}
+        {esSolicitud && (
+          <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 px-4 py-3">
+
+            <label
+              htmlFor="filtroEstado"
+              className="text-xs font-semibold text-[#08284F]"
+            >
+              Filtrar por estado:
+            </label>
+
+            <select
+              id="filtroEstado"
+              value={filtroEstado}
+              onChange={(e) => setFiltroEstado(e.target.value)}
+              className="rounded-lg border border-slate-200 bg-[#F1F6FA] px-3 py-2 text-xs font-medium text-[#08284F] outline-none focus:border-[#F26B4D]"
+            >
+              <option value="TODOS">Todos los estados</option>
+              <option value="PENDIENTE">Pendiente</option>
+              <option value="ACEPTADA">Aceptada</option>
+              <option value="EN_PROGRESO">En progreso</option>
+              <option value="COMPLETADA">Completada</option>
+              <option value="RECHAZADA">Rechazada</option>
+              <option value="CANCELADA">Cancelada</option>
+            </select>
+
+            <span className="text-xs text-slate-500">
+              {datosFiltrados.length} solicitudes encontradas
+            </span>
+          </div>
+        )}
+
+        {/* ENCABEZADO DE REGISTROS */}
+        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+          <h2 className="text-sm font-semibold text-[#08284F]">
             Registros
           </h2>
 
-          <span className="rounded-full bg-[#F1F6FA] px-3 py-1 text-sm font-semibold text-[#08284F]">
-            {loading ? "Cargando..." : `${datos.length} registros`}
+          <span className="rounded-full bg-[#F1F6FA] px-3 py-1 text-xs font-semibold text-[#08284F]">
+            {loading
+              ? "Cargando..."
+              : `${datosFiltrados.length} registros`}
           </span>
         </div>
 
+        {/* ESTADOS DE LA TABLA */}
         {loading ? (
-          <div className="p-10 text-center text-slate-500">
+          <div className="p-6 text-center text-sm text-slate-500">
             Cargando información...
           </div>
         ) : error ? (
-          <div className="p-10 text-center text-red-500">
+          <div className="p-6 text-center text-sm text-red-500">
             {error}
           </div>
-        ) : datos.length === 0 ? (
-          <div className="p-10 text-center text-slate-500">
-            No hay registros para mostrar.
+        ) : datosFiltrados.length === 0 ? (
+          <div className="p-6 text-center text-sm text-slate-500">
+            {esSolicitud && filtroEstado !== "TODOS"
+              ? "No hay solicitudes con el estado seleccionado."
+              : "No hay registros para mostrar."}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
 
-              <thead className="bg-[#08284F] text-white">
+          /* TABLA CON SCROLL */
+          <div className="max-h-[650px] overflow-auto">
+
+            <table className="w-full text-left text-xs">
+
+              {/* ENCABEZADOS */}
+              <thead className="sticky top-0 z-10 bg-[#08284F] text-white">
                 <tr>
                   {columnas.map((columna) => (
                     <th
                       key={columna.titulo}
-                      className="whitespace-nowrap px-6 py-4 font-semibold"
+                      className="whitespace-nowrap px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide"
                     >
                       {columna.titulo}
                     </th>
@@ -174,28 +251,49 @@ const DashboardListado = () => {
                 </tr>
               </thead>
 
+              {/* FILAS */}
               <tbody className="divide-y divide-slate-100">
-                {datos.map((registro, index) => (
+
+                {datosFiltrados.map((registro, index) => (
                   <tr
-                    key={registro.idUsuario ?? registro.idSolicitud ?? registro.id ?? index}
-                    className="transition hover:bg-slate-50"
+                    key={
+                      registro.idUsuario ??
+                      registro.idSolicitud ??
+                      registro.id ??
+                      index
+                    }
+                    className="transition hover:bg-[#F1F6FA]"
                   >
-                    {columnas.map((columna) => (
-                      <td
-                        key={columna.titulo}
-                        className="whitespace-nowrap px-6 py-4 text-slate-600"
-                      >
-                        {columna.valor(registro) ?? "—"}
-                      </td>
-                    ))}
+                    {columnas.map((columna) => {
+                      const valor = columna.valor(registro);
+
+                      return (
+                        <td
+                          key={columna.titulo}
+                          className="max-w-[220px] truncate whitespace-nowrap px-3 py-2 text-xs text-slate-600"
+                          title={String(valor ?? "—")}
+                        >
+                          {esSolicitud && columna.titulo === "Estado" ? (
+                            <span
+                              className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold ${
+                                obtenerEstiloEstado(valor)
+                              }`}
+                            >
+                              {String(valor ?? "SIN ESTADO").replaceAll("_", " ")}
+                            </span>
+                          ) : (
+                            valor ?? "—"
+                          )}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
-              </tbody>
 
+              </tbody>
             </table>
           </div>
         )}
-
       </section>
 
     </main>
