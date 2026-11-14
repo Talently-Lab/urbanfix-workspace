@@ -12,14 +12,20 @@ const authenticate = (req, res, next) => {
 
     const token = authHeader.split(' ')[1];
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
 
     req.user = decoded;
 
     next();
   } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        error: 'La sesión expiró, iniciá sesión de nuevo'
+      });
+    }
+
     return res.status(401).json({
-      error: 'Token inválido o expirado'
+      error: 'Token inválido'
     });
   }
 };
