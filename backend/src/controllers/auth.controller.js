@@ -46,7 +46,7 @@ exports.register = async (req, res) => {
     if (password.length < 8) {
       return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
     }
-    
+
     if (Buffer.byteLength(password, 'utf8') > 72) {
       return res.status(400).json({ error: 'La contraseña es demasiado larga (máximo 72 caracteres)' });
     }
@@ -169,8 +169,14 @@ exports.login = async (req, res) => {
   try {
     const { email, password, sesionId } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email y contraseña son requeridos' });
+    if (!esTexto(email) || !esTexto(password) || email.trim() === '' || password === '') {
+      return res.status(400).json({ error: 'Email y contraseña son requeridos y deben ser texto' });
+    }
+
+    const emailNormalizado = email.trim().toLowerCase();
+
+    if (emailNormalizado.length > 254 || Buffer.byteLength(password, 'utf8') > 72) {
+      return res.status(401).json({ error: 'Email o contraseña incorrectos' });
     }
 
     if (sesionId !== undefined && sesionId !== null && (typeof sesionId !== 'string' || sesionId.length > 100)) {
@@ -178,7 +184,7 @@ exports.login = async (req, res) => {
     }
 
     const usuario = await prisma.usuario.findUnique({
-      where: { email },
+      where: { email: emailNormalizado },
     });
 
     if (!usuario) {
