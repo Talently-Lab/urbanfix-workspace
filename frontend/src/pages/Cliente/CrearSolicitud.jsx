@@ -1,173 +1,471 @@
-
-
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import api from "../../services/api";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import api from "../../Services/api.js";
 
 function CrearSolicitud() {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Reemplazar los IDs por los que existan en la tabla Servicio
-  const servicios = [
-    { idServicio: 1, nombreServicio: "Plomería" },
-    { idServicio: 2, nombreServicio: "Gas" },
-    { idServicio: 3, nombreServicio: "Electricidad" },
-    { idServicio: 4, nombreServicio: "Informática" },
-    { idServicio: 5, nombreServicio: "Otros" },
-  ];
+  const servicio = location.state?.servicio;
+
+  //Obtenemos el id de sesion
+  const [sesionId] = useState(() => {
+    let id = sessionStorage.getItem("sesionId");
+
+    if (!id) {
+      id = crypto.randomUUID();
+      sessionStorage.setItem("sesionId", id);
+    }
+
+    return id;
+  });
+
+  const [instanciaFormularioId] = useState(() =>
+    crypto.randomUUID()
+  );
+
+  const eventoRegistrado = useRef(false);
 
   const [form, setForm] = useState({
     titulo: "",
     descripcion: "",
-    idServicio: "",
+    idServicio: servicio?.idServicio || "",
     direccion: "",
   });
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [aviso, setAviso] = useState(null);
+
+  useEffect(() => {
+    if (!servicio || eventoRegistrado.current) return;
+
+    eventoRegistrado.current = true;
+
+    const registrarInicio = async () => {
+      try {
+        await api.post("/eventos", {
+          nombreEvento: "SOLICITUD_INICIADA",
+          sesionId,
+          instanciaFormularioId,
+        });
+      } catch (err) {
+        console.error("Error al registrar inicio:", err);
+      }
+    };
+
+    registrarInicio();
+  }, [servicio, sesionId, instanciaFormularioId]);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
+  e.preventDefault();
 
-    if (
-      !form.titulo.trim() ||
-      !form.descripcion.trim() ||
-      !form.idServicio ||
-      !form.direccion.trim()
-    ) {
-      setError("Completá todos los campos.");
-      return;
-    }
+  if (loading) return;
 
-    setLoading(true);
+  if (
+    !form.titulo.trim() ||
+    !form.descripcion.trim() ||
+    !form.idServicio ||
+    !form.direccion.trim()
+  ) {
+    setAviso({
+      tipo: "error",
+      titulo: "Faltan algunos datos",
+      mensaje: "Completá todos los campos antes de continuar.",
+    });
+    return;
+  }
 
-    try {
-      await api.post("/solicitudes", {
-        detalle: `${form.titulo.trim()}\n${form.descripcion.trim()}\nDirección: ${form.direccion.trim()}`,
-        idServicio: Number(form.idServicio),
-      });
+  setLoading(true);
+  setAviso(null);
 
-      navigate("/Client", {
-        state: {
-          success: "¡Solicitud creada exitosamente!",
-        },
-      });
-    } catch (err) {
-      console.error(
-        "Error al crear solicitud:",
-        err.response?.data || err.message
-      );
+  try {
+    const detalleCompleto =
+      `${form.titulo.trim()}\n\n${form.descripcion.trim()}`;
 
-      setError(
+    // POST /api/solicitudes
+    const response = await api.post("/solicitudes", {
+      detalle: detalleCompleto,
+      idServicio: Number(form.idServicio),
+      direccion: form.direccion.trim(),
+      instanciaFormularioId,
+      sesionId,
+    });
+
+    console.log("Solicitud creada:", response.data);
+
+    setAviso({
+      tipo: "success",
+      titulo: "¡Solicitud creada!",
+      mensaje:
+        "Recibimos tu solicitud correctamente. Ya podés consultar su estado desde tu panel.",
+    });
+
+  } catch (err) {
+    console.error("Error al crear solicitud:", err);
+
+    setAviso({
+      tipo: "error",
+      titulo: "No pudimos crear tu solicitud",
+      mensaje:
         err.response?.data?.error ||
-        "Error al crear la solicitud."
-      );
-    } finally {
-      setLoading(false);
-    }
+        "Ocurrió un error inesperado. Intentá nuevamente.",
+    });
+
+  } finally {
+    setLoading(false);
+  }
+};
+
+  if (!servicio) {
+    return (
+      <div className="mx-auto max-w-xl rounded-2xl bg-white p-10 text-center shadow-sm">
+        <div className="mb-4 text-4xl">⚠️</div>
+        <h2 className="text-xl font-bold text-urban-principal">
+          No hay un servicio seleccionado
+        </h2>
+        <p className="mt-2 text-sm text-urban-texto-secundario">
+          Volvé al panel y seleccioná el servicio que necesitás.
+        </p>
+        <button
+          onClick={() => navigate("/client/dashboard")}
+          className="mt-6 rounded-xl bg-urban-button px-6 py-3 font-bold text-white"
+        >
+          Volver al inicio
+        </button>
+      </div>
+    );
+  }
+
+  const actualizarCampo = (campo, valor) => {
+    setForm((prev) => ({
+      ...prev,
+      [campo]: valor,
+    }));
   };
 
+  const inputClass =
+    "w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-urban-button focus:bg-white focus:ring-4 focus:ring-orange-100";
+
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold text-gray-900">
-        Formulario de solicitud
-      </h1>
+    <div className="mx-auto w-full max-w-6xl pb-12">
 
-      <form
-        onSubmit={handleSubmit}
-        className="flex flex-col gap-5 rounded-xl bg-urban-fondo p-6 shadow-md"
-      >
-        <div className="flex flex-col gap-1">
-          <label htmlFor="titulo" className="text-sm font-semibold text-white">
-            Título
-          </label>
-          <input
-            id="titulo"
-            type="text"
-            required
-            placeholder="Rotura de caño"
-            value={form.titulo}
-            onChange={(e) =>
-              setForm({ ...form, titulo: e.target.value })
-            }
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-800"
-          />
-        </div>
 
-        <div className="flex flex-col gap-1">
-          <label htmlFor="idServicio" className="text-sm font-semibold text-white">
-            Categoría solicitada
-          </label>
-          <select
-            id="idServicio"
-            required
-            value={form.idServicio}
-            onChange={(e) =>
-              setForm({ ...form, idServicio: e.target.value })
-            }
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-800"
+      {/* ENCABEZADO */}
+      <div className="relative mb-8 overflow-hidden rounded-3xl bg-urban-principal px-7 py-9 text-white shadow-lg sm:px-10 sm:py-11">
+          {/* VOLVER */}
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="mb-6 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-urban-principal shadow-sm transition hover:border-urban-button hover:bg-orange-50 hover:text-urban-button"
           >
-            <option value="">Seleccioná un servicio</option>
-            {servicios.map((servicio) => (
-              <option
-                key={servicio.idServicio}
-                value={servicio.idServicio}
-              >
-                {servicio.nombreServicio}
-              </option>
-            ))}
-          </select>
-        </div>
+            <span className="text-lg">←</span>
+            Volver a servicios
+          </button>
 
-        <div className="flex flex-col gap-1">
-          <label htmlFor="descripcion" className="text-sm font-semibold text-white">
-            Descripción del problema
-          </label>
-          <textarea
-            id="descripcion"
-            rows={4}
-            required
-            placeholder="Describí el problema con el mayor detalle posible..."
-            value={form.descripcion}
-            onChange={(e) =>
-              setForm({ ...form, descripcion: e.target.value })
-            }
-            className="w-full resize-y rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-800"
-          />
-        </div>
+        <div className="relative z-10 max-w-2xl">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-orange-200">
+            <span className="h-2 w-2 rounded-full bg-orange-400" />
+            UrbanFix · Nueva solicitud
+          </span>
 
-        <div className="flex flex-col gap-1">
-          <label htmlFor="direccion" className="text-sm font-semibold text-white">
-            Dirección
-          </label>
-          <input
-            id="direccion"
-            type="text"
-            required
-            placeholder="Ingresá la dirección del domicilio"
-            value={form.direccion}
-            onChange={(e) =>
-              setForm({ ...form, direccion: e.target.value })
-            }
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-800"
-          />
-        </div>
+          <h1 className="mt-5 text-3xl font-extrabold tracking-tight sm:text-4xl">
+            ¿Qué necesitás solucionar?
+          </h1>
 
-        {error && (
-          <p className="text-sm font-semibold text-red-200">
-            {error}
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-blue-100 sm:text-base">
+            Contanos qué sucede y dónde necesitás ayuda.
+            Encontraremos un profesional para ayudarte.
           </p>
-        )}
+        </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-2 w-full rounded-lg bg-urban-button px-4 py-3 font-bold text-white disabled:opacity-50"
-        >
-          {loading ? "Enviando..." : "Crear solicitud"}
-        </button>
-      </form>
+        <div className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full border-[35px] border-white/5" />
+        <div className="pointer-events-none absolute -bottom-32 right-20 h-64 w-64 rounded-full bg-orange-500/10 blur-2xl" />
+
+        <div className="absolute bottom-5 right-8 hidden text-7xl opacity-10 lg:block">
+          🛠️
+        </div>
+      </div>
+
+      {/* CONTENIDO */}
+      <div className="grid grid-cols-1 items-start gap-7 lg:grid-cols-[1fr_320px]">
+
+        {/* FORMULARIO */}
+        <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm sm:p-9">
+
+          {loading || aviso ? (
+
+            <div className="flex min-h-[450px] flex-col items-center justify-center text-center">
+
+              {loading ? (
+                <>
+                  <div className="mb-6 h-16 w-16 animate-spin rounded-full border-4 border-slate-200 border-t-orange-500" />
+
+                  <h2 className="text-2xl font-bold text-urban-principal">
+                    Enviando solicitud...
+                  </h2>
+
+                  <p className="mt-3 max-w-sm text-sm text-slate-500">
+                    Estamos procesando tus datos. No cierres esta página.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div
+                    className={`mb-6 flex h-20 w-20 items-center justify-center rounded-full text-4xl ${
+                      aviso.tipo === "success"
+                        ? "bg-green-100 text-green-600"
+                        : "bg-red-100 text-red-600"
+                    }`}
+                  >
+                    {aviso.tipo === "success" ? "✓" : "!"}
+                  </div>
+
+                  <h2 className="text-2xl font-extrabold text-urban-principal">
+                    {aviso.titulo}
+                  </h2>
+
+                  <p className="mt-3 max-w-md text-sm leading-relaxed text-slate-500">
+                    {aviso.mensaje}
+                  </p>
+
+                  {aviso.tipo === "success" ? (
+                    <button
+                      onClick={() => navigate("/client/dashboard")}
+                      className="mt-8 rounded-xl bg-urban-button px-8 py-3.5 font-bold text-white transition hover:brightness-95"
+                    >
+                      Ir a mi panel →
+                    </button>
+                  ) : (
+                    <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                      <button
+                        onClick={() => navigate("/client/dashboard")}
+                        className="rounded-xl border border-slate-200 px-6 py-3 font-semibold text-slate-600 hover:bg-slate-50"
+                      >
+                        Volver al inicio
+                      </button>
+
+                      <button
+                        onClick={() => setAviso(null)}
+                        className="rounded-xl bg-urban-button px-6 py-3 font-bold text-white hover:brightness-95"
+                      >
+                        Intentar nuevamente
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+          ) : (
+
+            <form onSubmit={handleSubmit} className="space-y-7">
+
+              {/* TITULO DEL FORMULARIO */}
+              <div className="border-b border-slate-100 pb-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-lg">
+                    📋
+                  </div>
+
+                  <div>
+                    <h2 className="text-xl font-extrabold text-urban-principal">
+                      Detalles del trabajo
+                    </h2>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Completá la información del servicio.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* TITULO */}
+              <div className="space-y-2">
+                <label
+                  htmlFor="titulo"
+                  className="text-sm font-bold text-slate-700"
+                >
+                  Título del problema
+                  <span className="ml-1 text-orange-500">*</span>
+                </label>
+
+                <input
+                  id="titulo"
+                  type="text"
+                  required
+                  maxLength={100}
+                  placeholder="Ej: Pérdida de agua en la cocina"
+                  value={form.titulo}
+                  onChange={(e) =>
+                    actualizarCampo("titulo", e.target.value)
+                  }
+                  className={inputClass}
+                />
+
+                <p className="text-right text-xs text-slate-400">
+                  {form.titulo.length}/100 caracteres
+                </p>
+              </div>
+
+              {/* DESCRIPCION */}
+              <div className="space-y-2">
+                <label
+                  htmlFor="descripcion"
+                  className="text-sm font-bold text-slate-700"
+                >
+                  Descripción del problema
+                  <span className="ml-1 text-orange-500">*</span>
+                </label>
+
+                <textarea
+                  id="descripcion"
+                  rows={5}
+                  required
+                  maxLength={1000}
+                  placeholder="Explicá qué sucede, desde cuándo ocurre y cualquier detalle importante..."
+                  value={form.descripcion}
+                  onChange={(e) =>
+                    actualizarCampo("descripcion", e.target.value)
+                  }
+                  className={`${inputClass} resize-y`}
+                />
+
+                <p className="text-right text-xs text-slate-400">
+                  {form.descripcion.length}/1000 caracteres
+                </p>
+              </div>
+
+              {/* DIRECCION */}
+              <div className="space-y-2">
+                <label
+                  htmlFor="direccion"
+                  className="text-sm font-bold text-slate-700"
+                >
+                  Dirección del domicilio
+                  <span className="ml-1 text-orange-500">*</span>
+                </label>
+
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg">
+                    📍
+                  </span>
+
+                  <input
+                    id="direccion"
+                    type="text"
+                    required
+                    maxLength={200}
+                    placeholder="Ej: Av. Siempre Viva 123"
+                    value={form.direccion}
+                    onChange={(e) =>
+                      actualizarCampo("direccion", e.target.value)
+                    }
+                    className={`${inputClass} pl-12`}
+                  />
+                </div>
+
+                <p className="text-xs text-slate-400">
+                  Indicá la dirección donde el profesional realizará el trabajo.
+                </p>
+              </div>
+
+              {/* BOTON */}
+              <div className="border-t border-slate-100 pt-6">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex w-full items-center justify-center gap-3 rounded-xl bg-urban-button px-6 py-4 font-bold text-white shadow-md shadow-orange-500/10 transition hover:-translate-y-0.5 hover:brightness-95 disabled:opacity-50"
+                >
+                  Crear solicitud
+                  <span className="text-lg">→</span>
+                </button>
+
+                <p className="mt-4 text-center text-xs text-slate-400">
+                  🔒 Tus datos serán utilizados únicamente para gestionar el servicio.
+                </p>
+              </div>
+
+            </form>
+          )}
+        </div>
+
+        {/* COLUMNA LATERAL */}
+        <aside className="space-y-5">
+
+          {/* SERVICIO SELECCIONADO */}
+          <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm">
+
+            <div className="bg-slate-50 px-6 py-4">
+              <p className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                Servicio seleccionado
+              </p>
+            </div>
+
+            <div className="p-6">
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-3xl">
+                🛠️
+              </div>
+
+              <h3 className="text-xl font-extrabold text-urban-principal">
+                {servicio.nombreServicio}
+              </h3>
+
+              <p className="mt-3 text-sm leading-relaxed text-slate-500">
+                {servicio.descripcion || "Servicio seleccionado para tu solicitud."}
+              </p>
+
+              <div className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4">
+                <span className="h-2 w-2 rounded-full bg-green-500" />
+                <span className="text-xs font-semibold text-slate-500">
+                  Servicio seleccionado
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* RECOMENDACIONES */}
+          <div className="rounded-3xl bg-blue-50 p-6">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="text-2xl">💡</span>
+              <h3 className="font-extrabold text-urban-principal">
+                Consejos útiles
+              </h3>
+            </div>
+
+            <ul className="space-y-4 text-sm text-slate-600">
+              <li className="flex gap-3">
+                <span className="font-bold text-orange-500">01.</span>
+                <span>Usá un título corto que identifique el problema.</span>
+              </li>
+
+              <li className="flex gap-3">
+                <span className="font-bold text-orange-500">02.</span>
+                <span>Explicá los detalles para que el técnico comprenda la situación.</span>
+              </li>
+
+              <li className="flex gap-3">
+                <span className="font-bold text-orange-500">03.</span>
+                <span>Verificá que la dirección sea correcta.</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* AYUDA */}
+          <div className="rounded-3xl border border-slate-100 bg-white p-6">
+            <div className="flex gap-3">
+              <span className="text-2xl">🤝</span>
+              <div>
+                <h3 className="font-bold text-urban-principal">
+                  ¿Necesitás ayuda?
+                </h3>
+                <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                  Completá los datos con tranquilidad. Cuanta más información proporciones, mejor podrá entender el profesional tu problema.
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </aside>
+      </div>
     </div>
   );
 }

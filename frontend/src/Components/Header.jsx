@@ -80,11 +80,6 @@ function Header() {
       {/* ACCIONES DEL USUARIO */}
       <div className="flex items-center gap-3">
 
-        {/* UBICACIÓN */}
-        <div className="hidden items-center gap-2 text-urban-principal md:flex">
-          <span className="text-xl">📍</span>
-          <span className="text-sm font-medium">Tu ubicación</span>
-        </div>
 
         {estaLogueado ? (
           /* USUARIO LOGUEADO */
