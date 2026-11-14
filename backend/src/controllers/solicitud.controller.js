@@ -12,8 +12,8 @@ const getIdUsuario = (req) => req.user.userId;
 // POST /api/solicitudes  (CLIENTE)
 exports.create = async (req, res) => {
   try {
-    const { detalle, idServicio, direccion, instanciaFormularioId } = req.body;
-
+    const { detalle, idServicio, direccion, instanciaFormularioId, sesionId } = req.body;
+    
     if (!detalle.trim() || !idServicio) {
       return res.status(400).json({ error: 'detalle e idServicio son requeridos' });
     }
@@ -25,6 +25,12 @@ exports.create = async (req, res) => {
       (typeof instanciaFormularioId !== 'string' || instanciaFormularioId.length > 100)
     ) {
       return res.status(400).json({ error: 'instanciaFormularioId debe ser texto de hasta 100 caracteres' });
+    }
+    if (
+      sesionId !== undefined &&
+      (typeof sesionId !== 'string' || sesionId.length > 100)
+    ) {
+      return res.status(400).json({ error: 'sesionId debe ser texto de hasta 100 caracteres' });
     }
     if (direccion !== undefined && (typeof direccion !== 'string' || !direccion.trim())) {
       return res.status(400).json({ error: 'direccion debe ser un texto no vacío' });
@@ -56,7 +62,8 @@ exports.create = async (req, res) => {
           nombreEvento: 'SOLICITUD_CREADA',
           idUsuario: getIdUsuario(req),
           idSolicitud: nueva.idSolicitud,
-          instanciaFormularioId: instanciaFormularioId || null
+          instanciaFormularioId: instanciaFormularioId || null,
+          sesionId: sesionId || null
         }
       });
 
