@@ -22,10 +22,11 @@ const ofertas = {
 };
 
 // eventos: lista de [tipoEvento, idUsuario, díasAtrás]
-async function crearSolicitud({ detalle, estado, cliente, servicio, tecnico = null, creada, aceptada = null, finalizada = null, eventos }) {
+async function crearSolicitud({ detalle, direccion, estado, cliente, servicio, tecnico = null, creada, aceptada = null, finalizada = null, eventos }) {
   await prisma.solicitud.create({
     data: {
       detalle,
+      direccion,
       estado,
       idCliente: cliente,
       idServicio: servicio,
@@ -94,6 +95,7 @@ async function main() {
     // 1. PENDIENTE con rechazo parcial (caso borde): Juan la rechazó, Carlos todavía no respondió
     await crearSolicitud({
       detalle: 'Instalar luces LED en el patio',
+      direccion: 'Av. Rivadavia 4500, Caballito, CABA',
       estado: 'PENDIENTE', cliente: c1, servicio: s['Electricidad'], creada: 2,
       eventos: [['SOLICITUD_CREADA', c1, 2], ['SOLICITUD_RECHAZADA', juan, 1]],
     });
@@ -101,6 +103,7 @@ async function main() {
     // 2. ACEPTADA por Carlos
     await crearSolicitud({
       detalle: 'Cambiar el tablero eléctrico del departamento',
+      direccion: 'Av. Cabildo 2100, Belgrano, CABA',
       estado: 'ACEPTADA', cliente: c2, servicio: s['Electricidad'], tecnico: carlos, creada: 3, aceptada: 2,
       eventos: [['SOLICITUD_CREADA', c2, 3], ['SOLICITUD_ACEPTADA', carlos, 2]],
     });
@@ -108,6 +111,7 @@ async function main() {
     // 3. EN_PROGRESO con Juan
     await crearSolicitud({
       detalle: 'Destapar la cañería del baño',
+      direccion: 'Calle Gascón 850, Almagro, CABA',
       estado: 'EN_PROGRESO', cliente: c2, servicio: s['Plomería'], tecnico: juan, creada: 4, aceptada: 3,
       eventos: [['SOLICITUD_CREADA', c2, 4], ['SOLICITUD_ACEPTADA', juan, 3], ['SOLICITUD_EN_PROGRESO', juan, 2]],
     });
@@ -115,6 +119,7 @@ async function main() {
     // 4. COMPLETADA por Diego
     await crearSolicitud({
       detalle: 'Armar un mueble de cocina a medida',
+      direccion: 'Av. Santa Fe 3200, Palermo, CABA',
       estado: 'COMPLETADA', cliente: c3, servicio: s['Carpintería'], tecnico: diego, creada: 10, aceptada: 9, finalizada: 6,
       eventos: [
         ['SOLICITUD_CREADA', c3, 10], ['SOLICITUD_ACEPTADA', diego, 9],
@@ -125,6 +130,7 @@ async function main() {
     // 5. RECHAZADA: Gasista lo ofrece solo Carlos y la rechazó
     await crearSolicitud({
       detalle: 'Revisar pérdida de gas en la cocina',
+      direccion: 'Av. Directorio 1500, Flores, CABA',
       estado: 'RECHAZADA', cliente: c3, servicio: s['Gasista'], creada: 5,
       eventos: [['SOLICITUD_CREADA', c3, 5], ['SOLICITUD_RECHAZADA', carlos, 4]],
     });
@@ -132,6 +138,7 @@ async function main() {
     // 6. CANCELADA después de ser ACEPTADA (caso borde para QA)
     await crearSolicitud({
       detalle: 'Arreglar la canilla del lavadero',
+      direccion: 'Av. Corrientes 5800, Villa Crespo, CABA',
       estado: 'CANCELADA', cliente: c1, servicio: s['Plomería'], tecnico: diego, creada: 8, aceptada: 7,
       eventos: [['SOLICITUD_CREADA', c1, 8], ['SOLICITUD_ACEPTADA', diego, 7], ['SOLICITUD_CANCELADA', c1, 6]],
     });

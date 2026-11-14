@@ -28,6 +28,10 @@ enum TipoEvento {
   SOLICITUD_EN_PROGRESO
   SOLICITUD_COMPLETADA
   SOLICITUD_CANCELADA
+  SOLICITUD_INICIADA
+  VISTA_REGISTRO
+  VISTA_LOGIN
+  LOGIN_EXITOSO
 }
 
 model Usuario {
@@ -70,6 +74,7 @@ model TecnicoServicio {
 model Solicitud {
   idSolicitud Int             @id @default(autoincrement())
   detalle     String
+  direccion   String   @default("Sin especificar")
   estado      EstadoSolicitud @default(PENDIENTE)
 
   idCliente Int
@@ -89,13 +94,16 @@ model Solicitud {
 }
 
 model Evento {
-  idEvento     Int      @id @default(autoincrement())
+  idEvento     Int        @id @default(autoincrement())
   nombreEvento TipoEvento
-  fechaHora    DateTime @default(now())
+  fechaHora    DateTime   @default(now())
 
-  idUsuario Int
-  usuario   Usuario @relation(fields: [idUsuario], references: [idUsuario])
+  idUsuario Int?
+  usuario   Usuario? @relation(fields: [idUsuario], references: [idUsuario])
 
-  idSolicitud Int
-  solicitud   Solicitud @relation(fields: [idSolicitud], references: [idSolicitud])
+  idSolicitud Int?
+  solicitud   Solicitud? @relation(fields: [idSolicitud], references: [idSolicitud])
+
+  sesionId              String?
+  instanciaFormularioId String?
 }

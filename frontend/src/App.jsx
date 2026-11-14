@@ -1,4 +1,5 @@
 import { Route, Routes } from 'react-router-dom'
+import { TecnicoProvider } from "./context/TecnicoContext";
 
 //Paginas Utilizadas
 import Technician from './pages/Technician'
@@ -24,7 +25,7 @@ function App() {
       </section>
       <section>
         <Routes>
-          <Route path='/' element={<Home></Home>}/>
+        <Route path='/' element={<Home></Home>}/>
           <Route path='/Home' element={<Home></Home>}/>
           <Route path='/Login' element={<Login></Login>}/>
           <Route path='/Register' element={<Register></Register>}/>
@@ -33,7 +34,6 @@ function App() {
           <Route path="/ADMINISTRADOR/dashboard" element={ <ProtectedRoute allowedRole="ADMINISTRADOR"> <Admin /> </ProtectedRoute>}/>
           <Route path='Client/solicitud' element={<ProtectedRoute allowedRole="client"><CrearSolicitud/></ProtectedRoute>}/>
           <Route path='Client/servicio/:servicio' element={<ProtectedRoute allowedRole="client"><MostrarTecnicos/></ProtectedRoute>}/>
-          <Route path='Technician/dashboard' element={<ProtectedRoute allowedRole="technician"><Dashboard /></ProtectedRoute>}/>
           <Route path='Technician/dashboard' element={<ProtectedRoute allowedRole="technician"><Dashboard /></ProtectedRoute>}/>
           <Route path='/admin/dashboard-listado' element={<ProtectedRoute allowedRole="ADMINISTRADOR"> <DashboardListado /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />

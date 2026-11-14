@@ -5,6 +5,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [token, setToken] = useState(localStorage.getItem('token'))
   const [loading, setLoading] = useState(true)
+  const [solicitudes, setSolicitudes] = useState()
 
 
  useEffect(() => {
@@ -29,6 +30,7 @@ export function AuthProvider({ children }) {
   const logout = () => {
   setUser(null)
   setToken(null)
+  setSolicitudes(null)
   localStorage.removeItem('token')
   localStorage.removeItem('user')
 }

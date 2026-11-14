@@ -1,40 +1,104 @@
-import React from "react";
+import { useNavigate } from "react-router-dom";
 
 function SolicitudCard({ solicitud }) {
+  const navigate = useNavigate();
+
+  const idSolicitud = solicitud.idSolicitud ?? solicitud.id;
+  const estado = solicitud.estado?.toUpperCase() ?? "SIN ESTADO";
+
   const estados = {
-    PENDIENTE: "bg-yellow-100 text-yellow-800",
-    ACEPTADA: "bg-blue-100 text-blue-800",
-    EN_PROGRESO: "bg-purple-100 text-purple-800",
-    COMPLETADA: "bg-green-100 text-green-800",
-    RECHAZADA: "bg-red-100 text-red-800",
-    CANCELADA: "bg-gray-100 text-gray-600",
+    PENDIENTE: {
+      texto: "Pendiente",
+      estilo: "bg-amber-50 text-amber-700",
+    },
+    ACEPTADA: {
+      texto: "Aceptada",
+      estilo: "bg-blue-50 text-blue-700",
+    },
+    EN_PROGRESO: {
+      texto: "En progreso",
+      estilo: "bg-indigo-50 text-indigo-700",
+    },
+    COMPLETADA: {
+      texto: "Completada",
+      estilo: "bg-green-50 text-green-700",
+    },
+    RECHAZADA: {
+      texto: "Rechazada",
+      estilo: "bg-red-50 text-red-700",
+    },
+    CANCELADA: {
+      texto: "Cancelada",
+      estilo: "bg-slate-100 text-slate-600",
+    },
   };
 
+  const estadoActual = estados[estado] ?? {
+    texto: estado,
+    estilo: "bg-slate-100 text-slate-600",
+  };
+
+  const tieneTecnico = Boolean(solicitud.tecnico);
+
   return (
-    <div className="flex w-80 flex-col gap-3 rounded-xl border p-4 shadow-sm">
-      <h2 className="text-lg font-bold">
-        {solicitud.servicio?.nombreServicio || "Servicio"}
-      </h2>
+    <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md">
 
-      <span>
-        🔧 Categoría: {solicitud.servicio?.nombreServicio || "No especificada"}
-      </span>
+      {/* ENCABEZADO */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50 text-sm">
+            📋
+          </span>
 
-      <span
-        className={`self-start rounded-full px-3 py-1 text-xs font-medium ${
-          estados[solicitud.estado] || "bg-gray-100 text-gray-600"
-        }`}
-      >
-        {solicitud.estado}
-      </span>
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              Solicitud
+            </p>
+            <h3 className="text-sm font-extrabold text-urban-principal">
+              #{idSolicitud}
+            </h3>
+          </div>
+        </div>
 
-      <p>🔍 Descripción: {solicitud.detalle}</p>
+        <span
+          className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${estadoActual.estilo}`}
+        >
+          {estadoActual.texto}
+        </span>
+      </div>
 
-      <p>
-        👤 Cliente:{" "}
-        {solicitud.cliente?.nombre || "No especificado"}
-      </p>
-    </div>
+      {/* DETALLE */}
+      <div className="my-3 border-t border-slate-100" />
+
+      <div>
+        <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          Descripción
+        </p>
+
+        <p className="line-clamp-2 whitespace-pre-wrap text-xs leading-5 text-slate-600">
+          {solicitud.detalle || "Sin detalle disponible."}
+        </p>
+      </div>
+
+      {/* ACCIÓN */}
+      {tieneTecnico ? (
+        <button
+          type="button"
+          onClick={() => navigate(`/client/solicitud/${idSolicitud}`)}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-urban-principal px-3 py-2 text-xs font-bold text-white transition hover:bg-urban-button"
+        >
+          Ver técnico
+          <span>→</span>
+        </button>
+      ) : (
+        <div className="mt-3 flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+          <p className="text-[10px] font-medium text-slate-500">
+            Esperando asignación de técnico
+          </p>
+        </div>
+      )}
+    </article>
   );
 }
 

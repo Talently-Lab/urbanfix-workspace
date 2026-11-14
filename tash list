@@ -1,0 +1,46 @@
+[1mdiff --cc frontend/src/App.jsx[m
+[1mindex 2e4e4ed,a1ab617..0000000[m
+[1m--- a/frontend/src/App.jsx[m
+[1m+++ b/frontend/src/App.jsx[m
+[36m@@@ -10,6 -10,12 +10,15 @@@[m [mimport CrearSolicitud from './pages/Cli[m
+  import Dashboard from './pages/Tecnico/Dashboard'[m
+  import Home from './pages/Home'[m
+  import Header from './Components/Header'[m
+[32m++<<<<<<< Updated upstream[m
+[32m++=======[m
+[32m+ import MostrarTecnicos from './Components/MostrarTecnicos'[m
+[32m+ import Register from './pages/Register'[m
+[32m+ import SolicitudCardDetalle from './pages/Cliente/SolicitudCardDetalle'[m
+[32m+ import NotFound from "./pages/NotFound";[m
+[32m+ import DashboardListado from "./pages/Administrador/DashboardListado";[m
+[32m+ [m
+[32m++>>>>>>> Stashed changes[m
+  function App() {[m
+    return ([m
+      <div>[m
+[36m@@@ -18,12 -24,19 +27,18 @@@[m
+        </section>[m
+        <section>[m
+          <Routes>[m
+[31m -          <Route path='/' element={<Home></Home>}/>[m
+[31m -          <Route path='/Home' element={<Home></Home>}/>[m
+[32m +          <Route path='*' element={<Home></Home>}/>[m
+            <Route path='/Login' element={<Login></Login>}/>[m
+[31m -          <Route path='/Register' element={<Register></Register>}/>[m
+[31m -          <Route path="/Client/dashboard" element={ <ProtectedRoute allowedRole="client"><Client /> </ProtectedRoute>}/>[m
+[31m -          <Route path="/Client/solicitud/:id" element={<ProtectedRoute allowedRole="client"><SolicitudCardDetalle /></ProtectedRoute>}></Route>[m
+[31m -          <Route path="/ADMINISTRADOR/dashboard" element={ <ProtectedRoute allowedRole="ADMINISTRADOR"> <Admin /> </ProtectedRoute>}/>[m
+[32m +          <Route path="/Client" element={ <ProtectedRoute allowedRole="client"><Client /> </ProtectedRoute>}/>[m
+[32m +          <Route path="/Admin" element={ <ProtectedRoute allowedRole="admin"> <Admin /> </ProtectedRoute>}/>[m
+            <Route path='Client/solicitud' element={<ProtectedRoute allowedRole="client"><CrearSolicitud/></ProtectedRoute>}/>[m
+[31m -          <Route path='Client/servicio/:servicio' element={<ProtectedRoute allowedRole="client"><MostrarTecnicos/></ProtectedRoute>}/>[m
+            <Route path='Technician/dashboard' element={<ProtectedRoute allowedRole="technician"><Dashboard /></ProtectedRoute>}/>[m
+[32m++<<<<<<< Updated upstream[m
+[32m++=======[m
+[32m+           <Route path='Technician/dashboard' element={<ProtectedRoute allowedRole="technician"><Dashboard /></ProtectedRoute>}/>[m
+[32m+           <Route path='/admin/dashboard-listado' element={<ProtectedRoute allowedRole="ADMINISTRADOR"> <DashboardListado /></ProtectedRoute>} />[m
+[32m+           <Route path="*" element={<NotFound />} />[m
+[32m++>>>>>>> Stashed changes[m
+          </Routes>[m
+        </section>[m
+      </div>[m

@@ -80,7 +80,6 @@ function Header() {
       {/* ACCIONES DEL USUARIO */}
       <div className="flex items-center gap-3">
 
-
         {estaLogueado ? (
           /* USUARIO LOGUEADO */
           <div ref={menuRef} className="relative">
@@ -129,7 +128,7 @@ function Header() {
 
                 {/* OPCIONES DEL MENÚ */}
                 <nav className="flex flex-col gap-1 py-2">
-                  <p>agregar los links</p>
+                  <Link to={`${user.role}/dashboard`}>Dashboard</Link>
                 </nav>
 
                 {/* CERRAR SESIÓN */}

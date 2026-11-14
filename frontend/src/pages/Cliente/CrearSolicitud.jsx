@@ -8,7 +8,6 @@ function CrearSolicitud() {
 
   const servicio = location.state?.servicio;
 
-  //Obtenemos el id de sesion
   const [sesionId] = useState(() => {
     let id = sessionStorage.getItem("sesionId");
 
@@ -57,64 +56,66 @@ function CrearSolicitud() {
   }, [servicio, sesionId, instanciaFormularioId]);
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (loading) return;
+    if (loading) return;
 
-  if (
-    !form.titulo.trim() ||
-    !form.descripcion.trim() ||
-    !form.idServicio ||
-    !form.direccion.trim()
-  ) {
-    setAviso({
-      tipo: "error",
-      titulo: "Faltan algunos datos",
-      mensaje: "Completá todos los campos antes de continuar.",
-    });
-    return;
-  }
+    if (
+      !form.titulo.trim() ||
+      !form.descripcion.trim() ||
+      !form.idServicio ||
+      !form.direccion.trim()
+    ) {
+      setAviso({
+        tipo: "error",
+        titulo: "Faltan algunos datos",
+        mensaje: "Completá todos los campos antes de continuar.",
+      });
+      return;
+    }
 
-  setLoading(true);
-  setAviso(null);
+    setLoading(true);
+    setAviso(null);
 
-  try {
-    const detalleCompleto =
-      `${form.titulo.trim()}\n\n${form.descripcion.trim()}`;
+    try {
+      await api.post("/solicitudes", {
+        titulo: form.titulo.trim(),
+        detalle: form.descripcion.trim(),
+        direccion: form.direccion.trim(),
+        idServicio: Number(form.idServicio),
+      });
 
-    // POST /api/solicitudes
-    const response = await api.post("/solicitudes", {
-      detalle: detalleCompleto,
-      idServicio: Number(form.idServicio),
-      direccion: form.direccion.trim(),
-      instanciaFormularioId,
-      sesionId,
-    });
+      api.post("/eventos", {
+        nombreEvento: "SOLICITUD_CREADA",
+        sesionId,
+        instanciaFormularioId,
+      }).catch((err) => {
+        console.error("Error al registrar evento:", err);
+      });
 
-    console.log("Solicitud creada:", response.data);
+      setAviso({
+        tipo: "success",
+        titulo: "¡Solicitud creada!",
+        mensaje:
+          "Recibimos tu solicitud correctamente. Ya podés consultar su estado desde tu panel.",
+      });
 
-    setAviso({
-      tipo: "success",
-      titulo: "¡Solicitud creada!",
-      mensaje:
-        "Recibimos tu solicitud correctamente. Ya podés consultar su estado desde tu panel.",
-    });
+    } catch (err) {
+      console.error("Error al crear solicitud:", err);
 
-  } catch (err) {
-    console.error("Error al crear solicitud:", err);
+      setAviso({
+        tipo: "error",
+        titulo: "No pudimos crear tu solicitud",
+        mensaje:
+          err.response?.data?.error ||
+          err.response?.data?.mensaje ||
+          "Ocurrió un error inesperado. Intentá nuevamente.",
+      });
 
-    setAviso({
-      tipo: "error",
-      titulo: "No pudimos crear tu solicitud",
-      mensaje:
-        err.response?.data?.error ||
-        "Ocurrió un error inesperado. Intentá nuevamente.",
-    });
-
-  } finally {
-    setLoading(false);
-  }
-};
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!servicio) {
     return (
