@@ -232,8 +232,7 @@ exports.getMetricas = async (req, res) => {
       AND "rol" IN ('CLIENTE', 'TECNICO')
       AND "usuarioDePrueba" = FALSE`    
 
-    const requestAbandonmentRate = await prisma.$queryRaw
-    `SELECT COUNT(*) AS total_intentos,
+    const requestAbandonmentRate = await prisma.$queryRaw`SELECT COUNT(*) AS total_intentos,
     COUNT(*) FILTER (
       WHERE completado = TRUE
     ) AS total_completados,
@@ -259,6 +258,24 @@ exports.getMetricas = async (req, res) => {
     GROUP BY "instanciaFormularioId"
     ) AS intentos
     WHERE fecha_inicio <= CURRENT_TIMESTAMP - INTERVAL '2 hours'`    
+
+    const registeredCount = await prisma.$queryRaw`SELECT COUNT(u."idUsuario")
+    FROM "Usuario" u
+    WHERE u."rol" IN ('CLIENTE', 'TECNICO')
+      AND u."usuarioDePrueba" = FALSE;`
+
+    const registrationViewsCount = await prisma.$queryRaw`SELECT COUNT(*)
+    FROM "Evento" e
+    LEFT JOIN "Usuario" u
+      ON e."idUsuario" = u."idUsuario"
+    WHERE e."nombreEvento" = 'VISTA_REGISTRO'
+      AND (
+        e."idUsuario" IS NULL
+        OR u."usuarioDePrueba" = FALSE
+      );`
+
+    const requestCount = await prisma.$queryRaw`SELECT COUNT (s."idSolicitud")
+    FROM "Solicitud" s`
 
     res.json({
       metricas: {
@@ -289,7 +306,10 @@ exports.getMetricas = async (req, res) => {
           activationRate[0].activation_rate !== null
             ? parseInt(activationRate[0].activation_rate)
             : null,
-        dau: dau[0].dau ? Number(dau[0].dau): 0,
+        registeredCount: Number(registeredCount[0].count),
+        registrationViewsCount: Number(registrationViewsCount[0].count),
+        requestCount: Number(requestCount[0].count),
+        dau: dau[0].dau ? Number(dau[0].dau): null,
         abandonoSolicitud: {
           totalIntentos: Number(requestAbandonmentRate[0].total_intentos),
           totalCompletados: Number(requestAbandonmentRate[0].total_completados),
