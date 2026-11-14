@@ -3,6 +3,9 @@ const { PrismaPg } = require('@prisma/adapter-pg');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+const NOMBRE_REGEX = /^\p{L}+(?:[ '’-]\p{L}+)*$/u;
+const esTexto = (valor) => typeof valor === 'string';
+
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
 });
@@ -14,12 +17,38 @@ exports.register = async (req, res) => {
   try {
     const { email, password, nombre, apellido, rol, numeroTelefono, idServicios } = req.body;
 
-    if (!email || !password || !nombre || !apellido || !rol) {
-      return res.status(400).json({ error: 'Todos los campos obligatorios son requeridos' });
+    if (![email, password, nombre, apellido, rol].every(esTexto)) {
+      return res.status(400).json({ error: 'Email, contraseña, nombre, apellido y rol son obligatorios y deben ser texto' });
+    }
+
+    const nombreLimpio = nombre.trim();
+    const apellidoLimpio = apellido.trim();
+
+    if (nombreLimpio.length < 2 || nombreLimpio.length > 50 || !NOMBRE_REGEX.test(nombreLimpio)) {
+      return res.status(400).json({ error: 'El nombre debe tener entre 2 y 50 letras y no puede incluir números ni símbolos' });
+    }
+
+    if (apellidoLimpio.length < 2 || apellidoLimpio.length > 50 || !NOMBRE_REGEX.test(apellidoLimpio)) {
+      return res.status(400).json({ error: 'El apellido debe tener entre 2 y 50 letras y no puede incluir números ni símbolos' });
+    }
+
+    let telefonoLimpio = null;
+    if (numeroTelefono !== undefined && numeroTelefono !== null && numeroTelefono !== '') {
+      if (!esTexto(numeroTelefono)) {
+        return res.status(400).json({ error: 'El número de teléfono debe ser texto' });
+      }
+      telefonoLimpio = numeroTelefono.trim();
+      if (!/^\+?[0-9\s()-]{8,20}$/.test(telefonoLimpio)) {
+        return res.status(400).json({ error: 'El número de teléfono no es válido' });
+      }
     }
 
     if (password.length < 8) {
       return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
+    }
+    
+    if (Buffer.byteLength(password, 'utf8') > 72) {
+      return res.status(400).json({ error: 'La contraseña es demasiado larga (máximo 72 caracteres)' });
     }
 
     const rolesValidos = ['TECNICO', 'CLIENTE'];
@@ -40,33 +69,41 @@ exports.register = async (req, res) => {
       return res.status(409).json({ error: 'El email ya está registrado' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
     let usuario = {};
 
     if (rol === 'TECNICO') {
+      
       if (!Array.isArray(idServicios) || idServicios.length === 0) {
         return res.status(400).json({ error: 'El técnico debe ofrecer al menos un servicio' });
       }
 
-      if (!idServicios.every((id) => Number.isInteger(id))) {
-        return res.status(400).json({ error: 'Los IDs de servicios deben ser numeros enteros' });
+      if (idServicios.length > 50) {
+        return res.status(400).json({ error: 'No se pueden indicar más de 50 servicios' });
       }
+
+      if (!idServicios.every((id) => Number.isInteger(id) && id >= 1 && id <= 2147483647)) {
+        return res.status(400).json({ error: 'Los IDs de servicios deben ser números enteros válidos' });
+      }
+
+      const idServiciosUnicos = [...new Set(idServicios)];
 
       const servicios = await prisma.servicio.findMany({
-        where: { idServicio: { in: idServicios } },
+        where: { idServicio: { in: idServiciosUnicos } },
       });
 
-      if (servicios.length !== idServicios.length) {
-        return res.status(400).json({ error: 'Uno o mas servicios no existen' });
+      if (servicios.length !== idServiciosUnicos.length) {
+        return res.status(400).json({ error: 'Uno o más servicios no existen' });
       }
 
+      const hashedPassword = await bcrypt.hash(password, 12);
+      
       usuario = await prisma.$transaction(async (tx) => {
         const nuevoUsuario = await tx.usuario.create({
           data: {
             email: emailNormalizado,
             password: hashedPassword,
-            nombre,
-            apellido,
+            nombre: nombreLimpio,
+            apellido: apellidoLimpio,
             rol,
             numeroTelefono,
           },
@@ -81,7 +118,7 @@ exports.register = async (req, res) => {
         });
 
         await tx.tecnicoServicio.createMany({
-          data: idServicios.map((idServicio) => ({
+          data: idServiciosUnicos.map((idServicio) => ({
             idTecnico: nuevoUsuario.idUsuario,
             idServicio,
           })),
@@ -89,13 +126,14 @@ exports.register = async (req, res) => {
 
         return nuevoUsuario;
       });
-    } else {
+    } else { //rol: CLIENTE
+      const hashedPassword = await bcrypt.hash(password, 12);
       usuario = await prisma.usuario.create({
         data: {
           email: emailNormalizado,
           password: hashedPassword,
-          nombre,
-          apellido,
+          nombre: nombreLimpio,
+          apellido: apellidoLimpio,
           rol,
           numeroTelefono,
         },
@@ -118,6 +156,9 @@ exports.register = async (req, res) => {
 
     res.status(201).json({ usuario, token });
   } catch (error) {
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: 'El email ya está registrado' });
+    }
     console.error(error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
