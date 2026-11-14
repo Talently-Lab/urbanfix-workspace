@@ -234,9 +234,8 @@ exports.login = async (req, res) => {
   }
 };
 
-// ==========================================
+
 // OBTENER PERFIL ACTUAL
-// ==========================================
 exports.me = async (req, res) => {
   try {
     const idUsuario = req.user ? req.user.userId : null;
@@ -247,7 +246,17 @@ exports.me = async (req, res) => {
 
     const usuario = await prisma.usuario.findUnique({
       where: { idUsuario },
+      select: {
+        idUsuario: true,
+        nombre: true,
+        email: true,
+        rol: true,
+      },
     });
+
+    if (!usuario) {
+      return res.status(404).json({ error: 'El usuario no existe' });
+    }
 
     res.json({
       usuario: {
