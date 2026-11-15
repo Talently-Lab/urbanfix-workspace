@@ -14,12 +14,25 @@ exports.create = async (req, res) => {
   try {
     const { detalle, idServicio, direccion, instanciaFormularioId, sesionId } = req.body;
     
-    if (!detalle.trim() || !idServicio) {
-      return res.status(400).json({ error: 'detalle e idServicio son requeridos' });
+    if (typeof detalle !== 'string' || !detalle.trim()) {
+      return res.status(400).json({ error: 'El detalle es requerido y debe ser texto' });
     }
-    if (!Number.isInteger(Number(idServicio))) {
-      return res.status(400).json({ error: 'idServicio debe ser un número' });
+
+    if (idServicio === undefined || idServicio === null || idServicio === '') {
+      return res.status(400).json({ error: 'idServicio es requerido' });
     }
+
+    const detalleLimpio = detalle.trim();
+    if (detalleLimpio.length > 1000) {
+      return res.status(400).json({ error: 'El detalle no puede superar los 1000 caracteres' });
+    }
+
+    const idServicioNumero =
+      typeof idServicio === 'number' || typeof idServicio === 'string' ? Number(idServicio) : NaN;
+    if (!Number.isInteger(idServicioNumero) || idServicioNumero < 1 || idServicioNumero > 2147483647) {
+      return res.status(400).json({ error: 'idServicio debe ser un número entero válido' });
+    }
+
     if (
       instanciaFormularioId !== undefined &&
       (typeof instanciaFormularioId !== 'string' || instanciaFormularioId.length > 100)
@@ -37,7 +50,7 @@ exports.create = async (req, res) => {
     }
 
     const servicio = await prisma.servicio.findUnique({
-      where: { idServicio: Number(idServicio) }
+      where: { idServicio: idServicioNumero }
     });
     if (!servicio) {
       return res.status(404).json({ error: 'El servicio no existe' });
@@ -46,7 +59,7 @@ exports.create = async (req, res) => {
     const solicitud = await prisma.$transaction(async (tx) => {
       const nueva = await tx.solicitud.create({
         data: {
-          detalle,
+          detalle: detalleLimpio,
           direccion: direccion ? direccion.trim() : undefined,
           idServicio: servicio.idServicio,
           idCliente: getIdUsuario(req)
