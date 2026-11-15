@@ -94,7 +94,7 @@ exports.getSolicitudes = async (req, res) => {
 exports.cancelarSolicitud = async (req, res) => {
   try {
     const idSolicitud = Number(req.params.id);
-    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+    if (!Number.isInteger(idSolicitud) || idSolicitud < 1 || idSolicitud > 2147483647) {
       return res
         .status(400)
         .json({ error: 'El id de la solicitud debe ser un número válido' });
