@@ -94,7 +94,7 @@ exports.getSolicitudes = async (req, res) => {
 exports.cancelarSolicitud = async (req, res) => {
   try {
     const idSolicitud = Number(req.params.id);
-    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+    if (!Number.isInteger(idSolicitud) || idSolicitud < 1 || idSolicitud > 2147483647) {
       return res
         .status(400)
         .json({ error: 'El id de la solicitud debe ser un número válido' });
@@ -327,22 +327,28 @@ exports.getMetricas = async (req, res) => {
 // POST /api/admin/servicios  (ADMINISTRADOR)
 exports.crearServicio = async (req, res) => {
   try {
-    const nombreServicio = String(req.body.nombreServicio || '').trim();
-    const descripcion = String(req.body.descripcion || '').trim();
+    const { nombreServicio, descripcion } = req.body || {};
 
-    if (!nombreServicio || nombreServicio.length > 100 || !descripcion) {
-      return res.status(400).json({ error: 'Datos inválidos: nombreServicio y descripcion son obligatorios (nombre máximo 100 caracteres)' });
+    if (typeof nombreServicio !== 'string' || typeof descripcion !== 'string') {
+      return res.status(400).json({ error: 'nombreServicio y descripcion son obligatorios y deben ser texto' });
+    }
+
+    const nombreLimpio = nombreServicio.trim();
+    const descripcionLimpia = descripcion.trim();
+
+    if (!nombreLimpio || nombreLimpio.length > 100 || !descripcionLimpia || descripcionLimpia.length > 500) {
+      return res.status(400).json({ error: 'Datos inválidos: nombreServicio y descripcion son obligatorios (nombre máximo 100 caracteres, descripción máximo 500)' });
     }
 
     const existe = await prisma.servicio.findFirst({
-      where: { nombreServicio: { equals: nombreServicio, mode: 'insensitive' } },
+      where: { nombreServicio: { equals: nombreLimpio, mode: 'insensitive' } },
     });
     if (existe) {
       return res.status(409).json({ error: 'Ya existe un servicio con ese nombre' });
     }
 
     const servicio = await prisma.servicio.create({
-      data: { nombreServicio, descripcion },
+      data: { nombreServicio: nombreLimpio, descripcion: descripcionLimpia },
       select: { idServicio: true, nombreServicio: true, descripcion: true },
     });
 

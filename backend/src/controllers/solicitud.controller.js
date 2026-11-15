@@ -8,18 +8,32 @@ const adapter = new PrismaPg({
 const prisma = new PrismaClient({ adapter });
 
 const getIdUsuario = (req) => req.user.userId;
+const idValido = (id) => Number.isInteger(id) && id >= 1 && id <= 2147483647;
 
 // POST /api/solicitudes  (CLIENTE)
 exports.create = async (req, res) => {
   try {
     const { detalle, idServicio, direccion, instanciaFormularioId, sesionId } = req.body;
     
-    if (!detalle.trim() || !idServicio) {
-      return res.status(400).json({ error: 'detalle e idServicio son requeridos' });
+    if (typeof detalle !== 'string' || !detalle.trim()) {
+      return res.status(400).json({ error: 'El detalle es requerido y debe ser texto' });
     }
-    if (!Number.isInteger(Number(idServicio))) {
-      return res.status(400).json({ error: 'idServicio debe ser un número' });
+
+    if (idServicio === undefined || idServicio === null || idServicio === '') {
+      return res.status(400).json({ error: 'idServicio es requerido' });
     }
+
+    const detalleLimpio = detalle.trim();
+    if (detalleLimpio.length > 1000) {
+      return res.status(400).json({ error: 'El detalle no puede superar los 1000 caracteres' });
+    }
+
+    const idServicioNumero =
+      typeof idServicio === 'number' || typeof idServicio === 'string' ? Number(idServicio) : NaN;
+    if (!Number.isInteger(idServicioNumero) || idServicioNumero < 1 || idServicioNumero > 2147483647) {
+      return res.status(400).json({ error: 'idServicio debe ser un número entero válido' });
+    }
+
     if (
       instanciaFormularioId !== undefined &&
       (typeof instanciaFormularioId !== 'string' || instanciaFormularioId.length > 100)
@@ -32,12 +46,20 @@ exports.create = async (req, res) => {
     ) {
       return res.status(400).json({ error: 'sesionId debe ser texto de hasta 100 caracteres' });
     }
-    if (direccion !== undefined && (typeof direccion !== 'string' || !direccion.trim())) {
+    
+    if (direccion === undefined || direccion === null) {
+      return res.status(400).json({ error: 'La dirección es requerida' });
+    }
+    if (typeof direccion !== 'string' || !direccion.trim()) {
       return res.status(400).json({ error: 'direccion debe ser un texto no vacío' });
+    }
+    const direccionLimpia = direccion.trim();
+    if (direccionLimpia.length > 200) {
+      return res.status(400).json({ error: 'La dirección no puede superar los 200 caracteres' });
     }
 
     const servicio = await prisma.servicio.findUnique({
-      where: { idServicio: Number(idServicio) }
+      where: { idServicio: idServicioNumero }
     });
     if (!servicio) {
       return res.status(404).json({ error: 'El servicio no existe' });
@@ -46,8 +68,8 @@ exports.create = async (req, res) => {
     const solicitud = await prisma.$transaction(async (tx) => {
       const nueva = await tx.solicitud.create({
         data: {
-          detalle,
-          direccion: direccion ? direccion.trim() : undefined,
+          detalle: detalleLimpio,
+          direccion: direccionLimpia,
           idServicio: servicio.idServicio,
           idCliente: getIdUsuario(req)
         },
@@ -133,7 +155,7 @@ exports.getDisponibles = async (req, res) => {
 exports.aceptar = async (req, res) => {
   try {
     const idSolicitud = Number(req.params.id);
-    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+    if (!idValido(idSolicitud)) {
       return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
     }
     const idTecnico = getIdUsuario(req);
@@ -181,7 +203,7 @@ exports.aceptar = async (req, res) => {
 exports.rechazar = async (req, res) => {
   try {
     const idSolicitud = Number(req.params.id);
-    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+    if (!idValido(idSolicitud)) {
       return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
     }
     const idTecnico = getIdUsuario(req);
@@ -270,7 +292,7 @@ exports.getAsignadas = async (req, res) => {
 exports.iniciar = async (req, res) => {
   try {
     const idSolicitud = Number(req.params.id);
-    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+    if (!idValido(idSolicitud)) {
       return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
     }
     const idTecnico = getIdUsuario(req);
@@ -315,7 +337,7 @@ exports.iniciar = async (req, res) => {
 exports.completar = async (req, res) => {
   try {
     const idSolicitud = Number(req.params.id);
-    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+    if (!idValido(idSolicitud)) {
       return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
     }
     const idTecnico = getIdUsuario(req);
@@ -360,7 +382,7 @@ exports.completar = async (req, res) => {
 exports.cancelar = async (req, res) => {
   try {
     const idSolicitud = Number(req.params.id);
-    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+    if (!idValido(idSolicitud)) {
       return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
     }
     const idUsuario = getIdUsuario(req);
@@ -407,7 +429,7 @@ exports.cancelar = async (req, res) => {
 exports.getById = async (req, res) => {
   try {
     const idSolicitud = Number(req.params.id);
-    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+    if (!idValido(idSolicitud)) {
       return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
     }
     const idUsuario = getIdUsuario(req);
@@ -474,7 +496,7 @@ exports.getById = async (req, res) => {
 exports.getEventos = async (req, res) => {
   try {
     const idSolicitud = Number(req.params.id);
-    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+    if (!idValido(idSolicitud)) {
       return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
     }
     const idUsuario = getIdUsuario(req);
