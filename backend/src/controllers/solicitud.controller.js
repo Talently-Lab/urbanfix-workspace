@@ -47,17 +47,16 @@ exports.create = async (req, res) => {
       return res.status(400).json({ error: 'sesionId debe ser texto de hasta 100 caracteres' });
     }
     
-    let direccionLimpia;
-    if (direccion !== undefined) {
-      if (typeof direccion !== 'string' || !direccion.trim()) {
-        return res.status(400).json({ error: 'direccion debe ser un texto no vacío' });
-      }
-      direccionLimpia = direccion.trim();
-      if (direccionLimpia.length > 100) {
-        return res.status(400).json({ error: 'La dirección no puede superar los 100 caracteres' });
-      }
+    if (direccion === undefined || direccion === null) {
+      return res.status(400).json({ error: 'La dirección es requerida' });
     }
-
+    if (typeof direccion !== 'string' || !direccion.trim()) {
+      return res.status(400).json({ error: 'direccion debe ser un texto no vacío' });
+    }
+    const direccionLimpia = direccion.trim();
+    if (direccionLimpia.length > 200) {
+      return res.status(400).json({ error: 'La dirección no puede superar los 200 caracteres' });
+    }
 
     const servicio = await prisma.servicio.findUnique({
       where: { idServicio: idServicioNumero }
