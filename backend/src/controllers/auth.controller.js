@@ -105,7 +105,7 @@ exports.register = async (req, res) => {
             nombre: nombreLimpio,
             apellido: apellidoLimpio,
             rol,
-            numeroTelefono,
+            numeroTelefono: telefonoLimpio,
           },
           select: {
             idUsuario: true,
@@ -135,7 +135,7 @@ exports.register = async (req, res) => {
           nombre: nombreLimpio,
           apellido: apellidoLimpio,
           rol,
-          numeroTelefono,
+          numeroTelefono: telefonoLimpio,
         },
         select: {
           idUsuario: true,
