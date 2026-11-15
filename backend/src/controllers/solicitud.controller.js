@@ -8,6 +8,7 @@ const adapter = new PrismaPg({
 const prisma = new PrismaClient({ adapter });
 
 const getIdUsuario = (req) => req.user.userId;
+const idValido = (id) => Number.isInteger(id) && id >= 1 && id <= 2147483647;
 
 // POST /api/solicitudes  (CLIENTE)
 exports.create = async (req, res) => {
@@ -155,7 +156,7 @@ exports.getDisponibles = async (req, res) => {
 exports.aceptar = async (req, res) => {
   try {
     const idSolicitud = Number(req.params.id);
-    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+    if (!idValido(idSolicitud)) {
       return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
     }
     const idTecnico = getIdUsuario(req);
@@ -203,7 +204,7 @@ exports.aceptar = async (req, res) => {
 exports.rechazar = async (req, res) => {
   try {
     const idSolicitud = Number(req.params.id);
-    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+    if (!idValido(idSolicitud)) {
       return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
     }
     const idTecnico = getIdUsuario(req);
@@ -292,7 +293,7 @@ exports.getAsignadas = async (req, res) => {
 exports.iniciar = async (req, res) => {
   try {
     const idSolicitud = Number(req.params.id);
-    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+    if (!idValido(idSolicitud)) {
       return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
     }
     const idTecnico = getIdUsuario(req);
@@ -337,7 +338,7 @@ exports.iniciar = async (req, res) => {
 exports.completar = async (req, res) => {
   try {
     const idSolicitud = Number(req.params.id);
-    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+    if (!idValido(idSolicitud)) {
       return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
     }
     const idTecnico = getIdUsuario(req);
@@ -382,7 +383,7 @@ exports.completar = async (req, res) => {
 exports.cancelar = async (req, res) => {
   try {
     const idSolicitud = Number(req.params.id);
-    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+    if (!idValido(idSolicitud)) {
       return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
     }
     const idUsuario = getIdUsuario(req);
@@ -429,7 +430,7 @@ exports.cancelar = async (req, res) => {
 exports.getById = async (req, res) => {
   try {
     const idSolicitud = Number(req.params.id);
-    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+    if (!idValido(idSolicitud)) {
       return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
     }
     const idUsuario = getIdUsuario(req);
@@ -496,7 +497,7 @@ exports.getById = async (req, res) => {
 exports.getEventos = async (req, res) => {
   try {
     const idSolicitud = Number(req.params.id);
-    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+    if (!idValido(idSolicitud)) {
       return res.status(400).json({ error: 'El id de la solicitud debe ser un número válido' });
     }
     const idUsuario = getIdUsuario(req);
