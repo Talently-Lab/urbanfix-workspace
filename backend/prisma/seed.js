@@ -49,7 +49,8 @@ async function crearSolicitud({ detalle, direccion, estado, cliente, servicio, t
 }
 
 async function main() {
-  const hashedPass = await bcrypt.hash('password123', 12);
+  const hashedAdminPass = await bcrypt.hash('Admin#UrbanFix2026!#Nov@MB', 12);
+  const hashedUserPass = await bcrypt.hash('UrbanFix#2026', 12);
 
   // Limpiar datos viejos antes de cargar los nuevos
   await prisma.evento.deleteMany();
@@ -60,13 +61,13 @@ async function main() {
   // Usuarios: 1 admin (prueba) y 6 usuarios reales (usuarioDePrueba: false para métricas)
   await prisma.usuario.createMany({
     data: [
-      { email: 'admin@urbanfix.com', password: hashedPass, nombre: 'Admin', apellido: 'UrbanFix', rol: 'ADMINISTRADOR', usuarioDePrueba: false },
-      { email: 'cliente@test.com', password: hashedPass, nombre: 'María', apellido: 'García', rol: 'CLIENTE', numeroTelefono: '1112345678', usuarioDePrueba: false, ultimoLogin: new Date() },
-      { email: 'cliente2@test.com', password: hashedPass, nombre: 'Lucía', apellido: 'Fernández', rol: 'CLIENTE', numeroTelefono: '1155550001', usuarioDePrueba: false, ultimoLogin: new Date() },
-      { email: 'cliente3@test.com', password: hashedPass, nombre: 'Martín', apellido: 'López', rol: 'CLIENTE', numeroTelefono: '1155550003', usuarioDePrueba: false, ultimoLogin: diasAtras(3) },
-      { email: 'tecnico@test.com', password: hashedPass, nombre: 'Juan', apellido: 'Pérez', rol: 'TECNICO', numeroTelefono: '1187654321', usuarioDePrueba: false, ultimoLogin: new Date() },
-      { email: 'tecnico2@test.com', password: hashedPass, nombre: 'Carlos', apellido: 'Gómez', rol: 'TECNICO', numeroTelefono: '1155550002', usuarioDePrueba: false, ultimoLogin: diasAtras(2) },
-      { email: 'tecnico3@test.com', password: hashedPass, nombre: 'Diego', apellido: 'Sosa', rol: 'TECNICO', numeroTelefono: '1155550005', usuarioDePrueba: false, ultimoLogin: null },
+      { email: 'admin@urbanfix.com', password: hashedAdminPass, nombre: 'Admin', apellido: 'UrbanFix', rol: 'ADMINISTRADOR', usuarioDePrueba: true },
+      { email: 'cliente@test.com', password: hashedUserPass, nombre: 'María', apellido: 'García', rol: 'CLIENTE', numeroTelefono: '1112345678', usuarioDePrueba: false, ultimoLogin: new Date() },
+      { email: 'cliente2@test.com', password: hashedUserPass, nombre: 'Lucía', apellido: 'Fernández', rol: 'CLIENTE', numeroTelefono: '1155550001', usuarioDePrueba: false, ultimoLogin: new Date() },
+      { email: 'cliente3@test.com', password: hashedUserPass, nombre: 'Martín', apellido: 'López', rol: 'CLIENTE', numeroTelefono: '1155550003', usuarioDePrueba: false, ultimoLogin: diasAtras(3) },
+      { email: 'tecnico@test.com', password: hashedUserPass, nombre: 'Juan', apellido: 'Pérez', rol: 'TECNICO', numeroTelefono: '1187654321', usuarioDePrueba: false, ultimoLogin: new Date() },
+      { email: 'tecnico2@test.com', password: hashedUserPass, nombre: 'Carlos', apellido: 'Gómez', rol: 'TECNICO', numeroTelefono: '1155550002', usuarioDePrueba: false, ultimoLogin: diasAtras(2) },
+      { email: 'tecnico3@test.com', password: hashedUserPass, nombre: 'Diego', apellido: 'Sosa', rol: 'TECNICO', numeroTelefono: '1155550005', usuarioDePrueba: false, ultimoLogin: null },
     ],
     skipDuplicates: true,
   });
