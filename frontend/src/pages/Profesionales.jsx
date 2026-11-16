@@ -1,4 +1,3 @@
-
 const profesionalesEjemplo = [
   {
     nombre: "Juan Pérez",
@@ -6,7 +5,7 @@ const profesionalesEjemplo = [
     experiencia: "8 años de experiencia",
     descripcion:
       "Especialista en instalaciones, reparaciones y mantenimiento de sistemas de agua.",
-    foto: "../../public/plomero.jpg",
+    foto: "/plomero.jpg",
   },
   {
     nombre: "Carlos Gómez",
@@ -14,7 +13,7 @@ const profesionalesEjemplo = [
     experiencia: "6 años de experiencia",
     descripcion:
       "Experiencia en instalaciones eléctricas, mantenimiento y solución de fallas.",
-    foto: "../../public/electricista.jpg",
+    foto: "/electricista.jpg",
   },
   {
     nombre: "Lucas Fernández",
@@ -22,7 +21,7 @@ const profesionalesEjemplo = [
     experiencia: "10 años de experiencia",
     descripcion:
       "Trabajos de carpintería, reparación de muebles y fabricación a medida.",
-    foto: "../../public/carpintero.jpg",
+    foto: "/carpintero.jpg",
   },
 ];
 
