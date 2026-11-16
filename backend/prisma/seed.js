@@ -61,7 +61,7 @@ async function main() {
   // Usuarios: 1 admin (prueba) y 6 usuarios reales (usuarioDePrueba: false para métricas)
   await prisma.usuario.createMany({
     data: [
-      { email: 'admin@urbanfix.com', password: hashedAdminPass, nombre: 'Admin', apellido: 'UrbanFix', rol: 'ADMINISTRADOR', usuarioDePrueba: true },
+      { email: 'admin@urbanfix.com', password: hashedAdminPass, nombre: 'Admin', apellido: 'UrbanFix', rol: 'ADMINISTRADOR', usuarioDePrueba: false },
       { email: 'cliente@test.com', password: hashedUserPass, nombre: 'María', apellido: 'García', rol: 'CLIENTE', numeroTelefono: '1112345678', usuarioDePrueba: false, ultimoLogin: new Date() },
       { email: 'cliente2@test.com', password: hashedUserPass, nombre: 'Lucía', apellido: 'Fernández', rol: 'CLIENTE', numeroTelefono: '1155550001', usuarioDePrueba: false, ultimoLogin: new Date() },
       { email: 'cliente3@test.com', password: hashedUserPass, nombre: 'Martín', apellido: 'López', rol: 'CLIENTE', numeroTelefono: '1155550003', usuarioDePrueba: false, ultimoLogin: diasAtras(3) },
