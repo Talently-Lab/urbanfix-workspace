@@ -59,6 +59,7 @@ exports.getSolicitudes = async (req, res) => {
         idSolicitud: true,
         detalle: true,
         estado: true,
+        direccion: true,
         fechaCreacion: true,
         fechaAceptacion: true,
         fechaFinalizacion: true,
