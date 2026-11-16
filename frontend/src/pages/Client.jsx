@@ -188,7 +188,7 @@ function Client() {
                 Encontrá lo que necesitás
               </span>
 
-              <h1 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">
+              <h1 className="mt-4 text-3xl font-extrabold !text-white tracking-tight sm:text-4xl">
                 ¿Qué servicio estás buscando?
               </h1>
 
