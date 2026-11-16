@@ -73,8 +73,10 @@ urbanfix-workspace/
 │   ├── public/
 │   ├── src/
 │   │   ├── Components/
-│   │   ├── pages/
+│   │   ├── Pages/
+│   │   ├── Assets/
 │   │   ├── Services/
+│   │   ├── Data/
 │   │   └── App.jsx
 │   └── package.json
 │
