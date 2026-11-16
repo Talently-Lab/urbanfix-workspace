@@ -125,7 +125,7 @@ const AdminDashboard = () => {
                 Panel de administración
               </span>
 
-              <h1 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">
+              <h1 className="mt-4 text-3xl !text-white font-extrabold tracking-tight sm:text-4xl">
                 Dashboard
               </h1>
 
