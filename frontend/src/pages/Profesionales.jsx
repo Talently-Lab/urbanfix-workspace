@@ -108,7 +108,7 @@ const Profesionales = ({
 
             <h2
               id="titulo-profesionales"
-              className="mt-5 text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl"
+              className="mt-5 text-3xl font-extrabold tracking-tight !text-white sm:text-4xl lg:text-5xl"
             >
               Profesionales que van a tu casa y{" "}
               <span className="text-[#F26B4D]">resuelven</span>
