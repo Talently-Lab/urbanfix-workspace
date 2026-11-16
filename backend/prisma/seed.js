@@ -49,8 +49,15 @@ async function crearSolicitud({ detalle, direccion, estado, cliente, servicio, t
 }
 
 async function main() {
-  const hashedAdminPass = await bcrypt.hash('Admin#UrbanFix2026!#Nov@MB', 12);
-  const hashedUserPass = await bcrypt.hash('UrbanFix#2026', 12);
+  const adminPass = process.env.SEED_ADMIN_PASSWORD;
+  const userPass = process.env.SEED_USER_PASSWORD;
+
+  if (!adminPass || !userPass) {
+    throw new Error('Debes definir SEED_ADMIN_PASSWORD y SEED_USER_PASSWORD en tu archivo .env');
+  }
+
+  const hashedAdminPass = await bcrypt.hash(adminPass, 12);
+  const hashedUserPass = await bcrypt.hash(userPass, 12);
 
   // Limpiar datos viejos antes de cargar los nuevos
   await prisma.evento.deleteMany();
