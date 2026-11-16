@@ -76,7 +76,6 @@ urbanfix-workspace/
 │   │   ├── Pages/
 │   │   ├── Assets/
 │   │   ├── Services/
-│   │   ├── Data/
 │   │   └── App.jsx
 │   └── package.json
 │
