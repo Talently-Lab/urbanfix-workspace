@@ -136,7 +136,7 @@ function Login() {
               Soluciones para tu hogar
             </span>
 
-            <h1 className="max-w-lg text-4xl font-extrabold leading-tight sm:text-5xl">
+            <h1 className="max-w-lg text-4xl !text-white font-extrabold leading-tight sm:text-5xl">
               Tu hogar,
               <span className="block text-urban-button">
                 en buenas manos.
