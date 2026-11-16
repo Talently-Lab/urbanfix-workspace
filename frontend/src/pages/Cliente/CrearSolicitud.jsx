@@ -168,7 +168,7 @@ function CrearSolicitud() {
               Nueva solicitud
             </span>
 
-            <h1 className="mt-5 text-3xl font-extrabold tracking-tight sm:text-4xl">
+            <h1 className="mt-5 text-3xl font-extrabold !text-white tracking-tight sm:text-4xl">
               ¿Qué necesitás solucionar?
             </h1>
 
