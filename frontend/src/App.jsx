@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom'
 
+
 //Paginas Utilizadas
 import Technician from './pages/Technician'
 import Login from './pages/Login'
@@ -14,7 +15,9 @@ import MostrarTecnicos from './Components/MostrarTecnicos'
 import Register from './pages/Register'
 import SolicitudCardDetalle from './pages/Cliente/SolicitudCardDetalle'
 import NotFound from "./pages/NotFound";
-
+import DashboardListado from "./pages/Administrador/DashboardListado";
+import PreguntasFrecuentes from './pages/PreguntasFrecuentes'
+import Profesionales from './pages/Profesionales'
 function App() {
   return (
     <div>
@@ -23,9 +26,11 @@ function App() {
       </section>
       <section>
         <Routes>
-          <Route path='/' element={<Home></Home>}/>
+        <Route path='/' element={<Home></Home>}/>
           <Route path='/Home' element={<Home></Home>}/>
           <Route path='/Login' element={<Login></Login>}/>
+          <Route path='/Faq' element={<PreguntasFrecuentes></PreguntasFrecuentes>}/>
+          <Route path='/Profesionales' element={<Profesionales></Profesionales>}/>
           <Route path='/Register' element={<Register></Register>}/>
           <Route path="/Client/dashboard" element={ <ProtectedRoute allowedRole="client"><Client /> </ProtectedRoute>}/>
           <Route path="/Client/solicitud/:id" element={<ProtectedRoute allowedRole="client"><SolicitudCardDetalle /></ProtectedRoute>}></Route>
@@ -33,7 +38,7 @@ function App() {
           <Route path='Client/solicitud' element={<ProtectedRoute allowedRole="client"><CrearSolicitud/></ProtectedRoute>}/>
           <Route path='Client/servicio/:servicio' element={<ProtectedRoute allowedRole="client"><MostrarTecnicos/></ProtectedRoute>}/>
           <Route path='Technician/dashboard' element={<ProtectedRoute allowedRole="technician"><Dashboard /></ProtectedRoute>}/>
-          <Route path='Technician/dashboard' element={<ProtectedRoute allowedRole="technician"><Dashboard /></ProtectedRoute>}/>
+          <Route path='/admin/dashboard-listado' element={<ProtectedRoute allowedRole="ADMINISTRADOR"> <DashboardListado /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </section>

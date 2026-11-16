@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "../../Services/api.js";
@@ -9,6 +8,7 @@ function CrearSolicitud() {
 
   const servicio = location.state?.servicio;
 
+  // Identificador de la sesión del usuario
   const [sesionId] = useState(() => {
     let id = sessionStorage.getItem("sesionId");
 
@@ -20,6 +20,7 @@ function CrearSolicitud() {
     return id;
   });
 
+  // Identificador único de esta instancia del formulario
   const [instanciaFormularioId] = useState(() =>
     crypto.randomUUID()
   );
@@ -27,7 +28,6 @@ function CrearSolicitud() {
   const eventoRegistrado = useRef(false);
 
   const [form, setForm] = useState({
-    titulo: "",
     descripcion: "",
     idServicio: servicio?.idServicio || "",
     direccion: "",
@@ -36,6 +36,7 @@ function CrearSolicitud() {
   const [loading, setLoading] = useState(false);
   const [aviso, setAviso] = useState(null);
 
+  // Registrar el inicio del formulario
   useEffect(() => {
     if (!servicio || eventoRegistrado.current) return;
 
@@ -56,78 +57,75 @@ function CrearSolicitud() {
     registrarInicio();
   }, [servicio, sesionId, instanciaFormularioId]);
 
+  // Crear solicitud
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (loading) return;
+  if (loading) return;
 
-    if (
-      !form.titulo.trim() ||
-      !form.descripcion.trim() ||
-      !form.idServicio ||
-      !form.direccion.trim()
-    ) {
-      setAviso({
-        tipo: "error",
-        titulo: "Faltan algunos datos",
-        mensaje: "Completá todos los campos antes de continuar.",
-      });
-      return;
-    }
+  if (
+    !form.descripcion.trim() ||
+    !form.idServicio ||
+    !form.direccion.trim()
+  ) {
+    setAviso({
+      tipo: "error",
+      titulo: "Faltan algunos datos",
+      mensaje: "Completá todos los campos antes de continuar.",
+    });
+    return;
+  }
 
-    setLoading(true);
-    setAviso(null);
+  setLoading(true);
+  setAviso(null);
 
-    try {
-      await api.post("/solicitudes", {
-        titulo: form.titulo.trim(),
-        detalle: form.descripcion.trim(),
-        direccion: form.direccion.trim(),
-        idServicio: Number(form.idServicio),
-      });
+  try {
+    await api.post("/solicitudes", {
+      detalle: form.descripcion.trim(),
+      direccion: form.direccion.trim(),
+      idServicio: Number(form.idServicio),
+      sesionId,
+      instanciaFormularioId,
+    });
 
-      api.post("/eventos", {
-        nombreEvento: "SOLICITUD_CREADA",
-        sesionId,
-        instanciaFormularioId,
-      }).catch((err) => {
-        console.error("Error al registrar evento:", err);
-      });
+    setAviso({
+      tipo: "success",
+      titulo: "¡Solicitud creada!",
+      mensaje:
+        "Recibimos tu solicitud correctamente. Ya podés consultar su estado desde tu panel.",
+    });
 
-      setAviso({
-        tipo: "success",
-        titulo: "¡Solicitud creada!",
-        mensaje:
-          "Recibimos tu solicitud correctamente. Ya podés consultar su estado desde tu panel.",
-      });
+  } catch (err) {
+    console.error("Error al crear solicitud:", err);
 
-    } catch (err) {
-      console.error("Error al crear solicitud:", err);
+    setAviso({
+      tipo: "error",
+      titulo: "No pudimos crear tu solicitud",
+      mensaje:
+        err.response?.data?.error ||
+        err.response?.data?.mensaje ||
+        "Ocurrió un error inesperado. Intentá nuevamente.",
+    });
 
-      setAviso({
-        tipo: "error",
-        titulo: "No pudimos crear tu solicitud",
-        mensaje:
-          err.response?.data?.error ||
-          err.response?.data?.mensaje ||
-          "Ocurrió un error inesperado. Intentá nuevamente.",
-      });
+  } finally {
+    setLoading(false);
+  }
+};
 
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Verificar que exista un servicio seleccionado
   if (!servicio) {
     return (
       <div className="mx-auto max-w-xl rounded-2xl bg-white p-10 text-center shadow-sm">
         <div className="mb-4 text-4xl">⚠️</div>
+
         <h2 className="text-xl font-bold text-urban-principal">
           No hay un servicio seleccionado
         </h2>
+
         <p className="mt-2 text-sm text-urban-texto-secundario">
           Volvé al panel y seleccioná el servicio que necesitás.
         </p>
+
         <button
           onClick={() => navigate("/client/dashboard")}
           className="mt-6 rounded-xl bg-urban-button px-6 py-3 font-bold text-white"
@@ -138,6 +136,7 @@ function CrearSolicitud() {
     );
   }
 
+  // Actualizar campos del formulario
   const actualizarCampo = (campo, valor) => {
     setForm((prev) => ({
       ...prev,
@@ -151,18 +150,18 @@ function CrearSolicitud() {
   return (
     <div className="mx-auto w-full max-w-6xl pb-12">
 
-
       {/* ENCABEZADO */}
       <div className="relative mb-8 overflow-hidden rounded-3xl bg-urban-principal px-7 py-9 text-white shadow-lg sm:px-10 sm:py-11">
-          {/* VOLVER */}
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="mb-6 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-urban-principal shadow-sm transition hover:border-urban-button hover:bg-orange-50 hover:text-urban-button"
-          >
-            <span className="text-lg">←</span>
-            Volver a servicios
-          </button>
+
+        {/* VOLVER */}
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="mb-6 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-urban-principal shadow-sm transition hover:border-urban-button hover:bg-orange-50 hover:text-urban-button"
+        >
+          <span className="text-lg">←</span>
+          Volver a servicios
+        </button>
 
         <div className="relative z-10 max-w-2xl">
           <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-orange-200">
@@ -181,6 +180,7 @@ function CrearSolicitud() {
         </div>
 
         <div className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full border-[35px] border-white/5" />
+
         <div className="pointer-events-none absolute -bottom-32 right-20 h-64 w-64 rounded-full bg-orange-500/10 blur-2xl" />
 
         <div className="absolute bottom-5 right-8 hidden text-7xl opacity-10 lg:block">
@@ -273,6 +273,7 @@ function CrearSolicitud() {
                     <h2 className="text-xl font-extrabold text-urban-principal">
                       Detalles del trabajo
                     </h2>
+
                     <p className="mt-1 text-xs text-slate-500">
                       Completá la información del servicio.
                     </p>
@@ -280,35 +281,9 @@ function CrearSolicitud() {
                 </div>
               </div>
 
-              {/* TITULO */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="titulo"
-                  className="text-sm font-bold text-slate-700"
-                >
-                  Título del problema
-                  <span className="ml-1 text-orange-500">*</span>
-                </label>
+            
 
-                <input
-                  id="titulo"
-                  type="text"
-                  required
-                  maxLength={100}
-                  placeholder="Ej: Pérdida de agua en la cocina"
-                  value={form.titulo}
-                  onChange={(e) =>
-                    actualizarCampo("titulo", e.target.value)
-                  }
-                  className={inputClass}
-                />
-
-                <p className="text-right text-xs text-slate-400">
-                  {form.titulo.length}/100 caracteres
-                </p>
-              </div>
-
-              {/* DESCRIPCION */}
+              {/* DETALLE DEL PROBLEMA */}
               <div className="space-y-2">
                 <label
                   htmlFor="descripcion"
@@ -320,7 +295,7 @@ function CrearSolicitud() {
 
                 <textarea
                   id="descripcion"
-                  rows={5}
+                  rows={6}
                   required
                   maxLength={1000}
                   placeholder="Explicá qué sucede, desde cuándo ocurre y cualquier detalle importante..."
@@ -417,6 +392,7 @@ function CrearSolicitud() {
 
               <div className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4">
                 <span className="h-2 w-2 rounded-full bg-green-500" />
+
                 <span className="text-xs font-semibold text-slate-500">
                   Servicio seleccionado
                 </span>
@@ -428,6 +404,7 @@ function CrearSolicitud() {
           <div className="rounded-3xl bg-blue-50 p-6">
             <div className="mb-4 flex items-center gap-3">
               <span className="text-2xl">💡</span>
+
               <h3 className="font-extrabold text-urban-principal">
                 Consejos útiles
               </h3>
@@ -455,10 +432,12 @@ function CrearSolicitud() {
           <div className="rounded-3xl border border-slate-100 bg-white p-6">
             <div className="flex gap-3">
               <span className="text-2xl">🤝</span>
+
               <div>
                 <h3 className="font-bold text-urban-principal">
                   ¿Necesitás ayuda?
                 </h3>
+
                 <p className="mt-2 text-xs leading-relaxed text-slate-500">
                   Completá los datos con tranquilidad. Cuanta más información proporciones, mejor podrá entender el profesional tu problema.
                 </p>

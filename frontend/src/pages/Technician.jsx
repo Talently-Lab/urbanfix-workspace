@@ -251,4 +251,3 @@ function Technician() {
 }
 
 export default Technician;
-

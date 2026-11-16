@@ -1,4 +1,3 @@
-
 function CartelAviso({ mensaje, tipo = "exito", onCerrar }) {
   if (!mensaje) return null;
 

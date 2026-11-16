@@ -2,7 +2,7 @@ import React from 'react'
 import Badge from './Badge'
 import { useNavigate,Link } from 'react-router-dom';
 
-//Proximamente debemos de recibir la informacion de cada profesional y completar la card con los datos
+//Se recibe la informacion de cada profesional y completar la card con los datos
 
 export function CardTecnico({nombre,profesiones}) {
     const prof = profesiones.map(profesion => profesion.toLowerCase());
