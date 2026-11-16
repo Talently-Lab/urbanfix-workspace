@@ -94,7 +94,7 @@ exports.getSolicitudes = async (req, res) => {
 exports.cancelarSolicitud = async (req, res) => {
   try {
     const idSolicitud = Number(req.params.id);
-    if (!Number.isInteger(idSolicitud) || idSolicitud < 1) {
+    if (!Number.isInteger(idSolicitud) || idSolicitud < 1 || idSolicitud > 2147483647) {
       return res
         .status(400)
         .json({ error: 'El id de la solicitud debe ser un número válido' });
@@ -232,8 +232,7 @@ exports.getMetricas = async (req, res) => {
       AND "rol" IN ('CLIENTE', 'TECNICO')
       AND "usuarioDePrueba" = FALSE`    
 
-    const requestAbandonmentRate = await prisma.$queryRaw
-    `SELECT COUNT(*) AS total_intentos,
+    const requestAbandonmentRate = await prisma.$queryRaw`SELECT COUNT(*) AS total_intentos,
     COUNT(*) FILTER (
       WHERE completado = TRUE
     ) AS total_completados,
@@ -259,6 +258,24 @@ exports.getMetricas = async (req, res) => {
     GROUP BY "instanciaFormularioId"
     ) AS intentos
     WHERE fecha_inicio <= CURRENT_TIMESTAMP - INTERVAL '2 hours'`    
+
+    const registeredCount = await prisma.$queryRaw`SELECT COUNT(u."idUsuario")
+    FROM "Usuario" u
+    WHERE u."rol" IN ('CLIENTE', 'TECNICO')
+      AND u."usuarioDePrueba" = FALSE;`
+
+    const registrationViewsCount = await prisma.$queryRaw`SELECT COUNT(*)
+    FROM "Evento" e
+    LEFT JOIN "Usuario" u
+      ON e."idUsuario" = u."idUsuario"
+    WHERE e."nombreEvento" = 'VISTA_REGISTRO'
+      AND (
+        e."idUsuario" IS NULL
+        OR u."usuarioDePrueba" = FALSE
+      );`
+
+    const requestCount = await prisma.$queryRaw`SELECT COUNT (s."idSolicitud")
+    FROM "Solicitud" s`
 
     res.json({
       metricas: {
@@ -289,7 +306,10 @@ exports.getMetricas = async (req, res) => {
           activationRate[0].activation_rate !== null
             ? parseInt(activationRate[0].activation_rate)
             : null,
-        dau: dau[0].dau ? Number(dau[0].dau): 0,
+        registeredCount: Number(registeredCount[0].count),
+        registrationViewsCount: Number(registrationViewsCount[0].count),
+        requestCount: Number(requestCount[0].count),
+        dau: dau[0].dau ? Number(dau[0].dau): null,
         abandonoSolicitud: {
           totalIntentos: Number(requestAbandonmentRate[0].total_intentos),
           totalCompletados: Number(requestAbandonmentRate[0].total_completados),
@@ -307,22 +327,28 @@ exports.getMetricas = async (req, res) => {
 // POST /api/admin/servicios  (ADMINISTRADOR)
 exports.crearServicio = async (req, res) => {
   try {
-    const nombreServicio = String(req.body.nombreServicio || '').trim();
-    const descripcion = String(req.body.descripcion || '').trim();
+    const { nombreServicio, descripcion } = req.body || {};
 
-    if (!nombreServicio || nombreServicio.length > 100 || !descripcion) {
-      return res.status(400).json({ error: 'Datos inválidos: nombreServicio y descripcion son obligatorios (nombre máximo 100 caracteres)' });
+    if (typeof nombreServicio !== 'string' || typeof descripcion !== 'string') {
+      return res.status(400).json({ error: 'nombreServicio y descripcion son obligatorios y deben ser texto' });
+    }
+
+    const nombreLimpio = nombreServicio.trim();
+    const descripcionLimpia = descripcion.trim();
+
+    if (!nombreLimpio || nombreLimpio.length > 100 || !descripcionLimpia || descripcionLimpia.length > 500) {
+      return res.status(400).json({ error: 'Datos inválidos: nombreServicio y descripcion son obligatorios (nombre máximo 100 caracteres, descripción máximo 500)' });
     }
 
     const existe = await prisma.servicio.findFirst({
-      where: { nombreServicio: { equals: nombreServicio, mode: 'insensitive' } },
+      where: { nombreServicio: { equals: nombreLimpio, mode: 'insensitive' } },
     });
     if (existe) {
       return res.status(409).json({ error: 'Ya existe un servicio con ese nombre' });
     }
 
     const servicio = await prisma.servicio.create({
-      data: { nombreServicio, descripcion },
+      data: { nombreServicio: nombreLimpio, descripcion: descripcionLimpia },
       select: { idServicio: true, nombreServicio: true, descripcion: true },
     });
 

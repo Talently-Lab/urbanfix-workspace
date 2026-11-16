@@ -27,7 +27,7 @@ exports.getMisServicios = async (req, res) => {
 exports.getTecnicosPorServicio = async (req, res) => {
   try {
     const idServicio = Number(req.params.id);
-    if (!Number.isInteger(idServicio) || idServicio < 1) {
+    if (!Number.isInteger(idServicio) || idServicio < 1 || idServicio > 2147483647) { //limite de Int de Postgres
       return res.status(400).json({ error: 'El id del servicio debe ser un número válido' });
     }
 

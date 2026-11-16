@@ -16,7 +16,8 @@ import Register from './pages/Register'
 import SolicitudCardDetalle from './pages/Cliente/SolicitudCardDetalle'
 import NotFound from "./pages/NotFound";
 import DashboardListado from "./pages/Administrador/DashboardListado";
-
+import PreguntasFrecuentes from './pages/PreguntasFrecuentes'
+import Profesionales from './pages/Profesionales'
 function App() {
   return (
     <div>
@@ -28,6 +29,8 @@ function App() {
         <Route path='/' element={<Home></Home>}/>
           <Route path='/Home' element={<Home></Home>}/>
           <Route path='/Login' element={<Login></Login>}/>
+          <Route path='/Faq' element={<PreguntasFrecuentes></PreguntasFrecuentes>}/>
+          <Route path='/Profesionales' element={<Profesionales></Profesionales>}/>
           <Route path='/Register' element={<Register></Register>}/>
           <Route path="/Client/dashboard" element={ <ProtectedRoute allowedRole="client"><Client /> </ProtectedRoute>}/>
           <Route path="/Client/solicitud/:id" element={<ProtectedRoute allowedRole="client"><SolicitudCardDetalle /></ProtectedRoute>}></Route>

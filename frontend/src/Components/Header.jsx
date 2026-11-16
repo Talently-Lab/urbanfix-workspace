@@ -43,8 +43,8 @@ function Header() {
   // Enlaces de navegación
   const links = [
     { nombre: 'Inicio', ruta: '/home' },
-    { nombre: 'Profesionales', ruta: '/home' },
-    { nombre: 'Preguntas frecuentes', ruta: '/home' },
+    { nombre: 'Profesionales', ruta: '/Profesionales' },
+    { nombre: 'Preguntas frecuentes', ruta: '/Faq' },
   ]
 
   return (
