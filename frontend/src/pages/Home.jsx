@@ -249,7 +249,7 @@ function Home() {
               Empezá hoy
             </p>
 
-            <h2 className="mt-3 text-3xl font-extrabold leading-tight text-white sm:text-4xl">
+            <h2 className="mt-3 text-3xl font-extrabold leading-tight !text-white sm:text-4xl">
               Tu próxima solución está a unos clics.
             </h2>
 
