@@ -119,9 +119,11 @@ function Login() {
             to="/home"
             className="relative z-10 inline-flex w-fit items-center gap-3"
           >
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-urban-button text-2xl font-black">
-              U
-            </span>
+            <img
+              src="/logo-urban-coral.png"
+              alt="Logo UrbanFix"
+              className="h-12 w-12 object-contain"
+            />
 
             <span className="text-2xl font-extrabold tracking-tight">
               UrbanFix
