@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
-
-@theme{
-  --color-urban-button: #F26B4D; 
-  --color-urban-principal: #08284F; /*Azul Marino*/
-  --color-urban-secundario: #F26B4D;/*Naranja coral*/
-  --color-urban-fondo: #F1F6FA;/*Celeste grisáceo*/
-  --color-urban-texto-secundario: #64748B;/*Gris azulado*/
+@theme {
+  --color-urban-button: #F26B4D;
+  --color-urban-principal: #08284F;       /* Azul marino */
+  --color-urban-secundario: #F26B4D;      /* Naranja coral */
+  --color-urban-fondo: #F1F6FA;           /* Celeste grisáceo */
+  --color-urban-texto-secundario: #64748B;/* Gris azulado */
+  --color-urban-coral: #F26B4D;           /* Solo decoración, íconos, textos grandes */
+  --color-urban-accion: #C93C18;          /* Coral oscuro: botones y enlaces */
 }
-
 :root {
   --text: #6b6375;
   --text-h: #08060d;

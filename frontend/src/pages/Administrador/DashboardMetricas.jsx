@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from "react";
+import api from "../../Services/api.js";
 
 import {
   ResponsiveContainer,
@@ -15,20 +16,15 @@ import {
   Legend,
 } from "recharts";
 
-import api from "../../Services/api.js";
+const COLORES = ["#10B981", "#F26B4D"];
 
-const COLORES = ["#F26B4D", "#08284F", "#10B981", "#8B5CF6", "#3B82F6"];
-
-// OBTENER ARRAYS DE LAS RESPUESTAS
 const obtenerLista = (data, propiedad) => {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.[propiedad])) return data[propiedad];
   if (Array.isArray(data?.data)) return data.data;
-
   return [];
 };
 
-// OBTENER ID DEL SERVICIO DE UNA SOLICITUD
 const obtenerIdServicio = (solicitud) => {
   return (
     solicitud.idServicio ??
@@ -39,7 +35,7 @@ const obtenerIdServicio = (solicitud) => {
   );
 };
 
-// CARD DE INDICADORES
+// TARJETA DE INDICADORES
 const IndicadorCard = ({
   titulo,
   valor,
@@ -48,15 +44,15 @@ const IndicadorCard = ({
   color = "#08284F",
   sufijo = "",
 }) => (
-  <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md">
-    <div className="flex items-start justify-between">
+  <article className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
+    <div className="flex items-start justify-between gap-3">
       <div>
         <p className="text-sm font-medium text-slate-500">
           {titulo}
         </p>
 
         <p
-          className="mt-3 text-4xl font-extrabold"
+          className="mt-3 text-3xl font-extrabold tracking-tight"
           style={{ color }}
         >
           {valor !== null && valor !== undefined
@@ -66,14 +62,14 @@ const IndicadorCard = ({
       </div>
 
       <div
-        className="flex h-12 w-12 items-center justify-center rounded-xl text-2xl"
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl"
         style={{ backgroundColor: `${color}15` }}
       >
         {icono}
       </div>
     </div>
 
-    <p className="mt-4 text-sm text-slate-500">
+    <p className="mt-4 text-xs leading-5 text-slate-500">
       {descripcion}
     </p>
   </article>
@@ -81,16 +77,18 @@ const IndicadorCard = ({
 
 // CONTENEDOR DE GRÁFICOS
 const GraficoCard = ({ titulo, descripcion, children }) => (
-  <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-    <h3 className="text-lg font-bold text-[#08284F]">
-      {titulo}
-    </h3>
+  <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="mb-5">
+      <h3 className="text-lg font-bold text-[#08284F]">
+        {titulo}
+      </h3>
 
-    <p className="mt-1 text-sm text-slate-400">
-      {descripcion}
-    </p>
+      <p className="mt-1 text-sm text-slate-400">
+        {descripcion}
+      </p>
+    </div>
 
-    <div className="mt-5 h-72 w-full">
+    <div className="h-72 w-full min-w-0">
       {children}
     </div>
   </article>
@@ -110,14 +108,12 @@ const DashboardMetricas = () => {
         setLoading(true);
         setError("");
 
-        // CONSULTAR LAS TRES RUTAS
         const resultados = await Promise.allSettled([
           api.get("/admin/metricas"),
-          api.get("/solicitudes"),
+          api.get("/admin/solicitudes"),
           api.get("/servicios"),
         ]);
 
-        // MÉTRICAS
         if (resultados[0].status === "rejected") {
           throw resultados[0].reason;
         }
@@ -130,7 +126,6 @@ const DashboardMetricas = () => {
 
         setMetricas(metricasBack);
 
-        // SOLICITUDES
         const solicitudes =
           resultados[1].status === "fulfilled"
             ? obtenerLista(
@@ -139,7 +134,6 @@ const DashboardMetricas = () => {
               )
             : [];
 
-        // SERVICIOS
         const servicios =
           resultados[2].status === "fulfilled"
             ? obtenerLista(
@@ -155,17 +149,16 @@ const DashboardMetricas = () => {
         // AGRUPAR SOLICITUDES POR SERVICIO
         const conteo = {};
 
-        // Inicializar todos los servicios en cero
         servicios.forEach((servicio) => {
           const id = servicio.idServicio ?? servicio.id;
 
           conteo[String(id)] = {
-            nombre: servicio.nombreServicio ?? servicio.nombre,
+            nombre:
+              servicio.nombreServicio ?? servicio.nombre,
             cantidad: 0,
           };
         });
 
-        // Contar solicitudes
         solicitudes.forEach((solicitud) => {
           const idServicio = obtenerIdServicio(solicitud);
 
@@ -187,14 +180,7 @@ const DashboardMetricas = () => {
           conteo[clave].cantidad += 1;
         });
 
-        const resultadoServicios = Object.values(conteo);
-
-        setDatosSolicitudesServicio(resultadoServicios);
-
-        console.log(
-          "SOLICITUDES POR SERVICIO:",
-          resultadoServicios
-        );
+        setDatosSolicitudesServicio(Object.values(conteo));
 
       } catch (error) {
         console.error("Error al obtener métricas:", error);
@@ -210,12 +196,11 @@ const DashboardMetricas = () => {
   if (loading) {
     return (
       <section className="mt-10">
-        <h2 className="mb-5 text-2xl font-bold text-[#08284F]">
-          Indicadores y estadísticas
-        </h2>
-
-        <div className="rounded-2xl bg-white p-10 text-center text-slate-500 shadow-sm">
-          Cargando estadísticas...
+        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
+          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-[#F26B4D]" />
+          <p className="font-medium text-slate-500">
+            Cargando estadísticas...
+          </p>
         </div>
       </section>
     );
@@ -224,11 +209,7 @@ const DashboardMetricas = () => {
   if (error || !metricas) {
     return (
       <section className="mt-10">
-        <h2 className="mb-5 text-2xl font-bold text-[#08284F]">
-          Indicadores y estadísticas
-        </h2>
-
-        <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-600">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-600">
           {error || "No hay datos disponibles."}
         </div>
       </section>
@@ -237,20 +218,7 @@ const DashboardMetricas = () => {
 
   const abandono = metricas.abandonoSolicitud || {};
 
-  // GRÁFICO DE RENDIMIENTO
-  const datosRendimiento = [
-    { nombre: "Match Rate", valor: metricas.matchRate },
-    { nombre: "Liquidez", valor: metricas.liquidity },
-    { nombre: "Conversión", valor: metricas.conversionRegistro },
-    { nombre: "Activación", valor: metricas.activationRate },
-  ].filter(
-    (item) =>
-      item.valor !== null &&
-      item.valor !== undefined &&
-      Number.isFinite(Number(item.valor))
-  );
-
-  // GRÁFICO CIRCULAR DE SOLICITUDES
+  // DATOS DEL GRÁFICO CIRCULAR
   const datosEstadoSolicitudes = [
     {
       nombre: "Completadas",
@@ -263,164 +231,203 @@ const DashboardMetricas = () => {
   ];
 
   return (
-    <section className="mt-12">
+    <section className="mt-10 space-y-8">
 
       {/* ENCABEZADO */}
-      <div className="mb-6">
-        <span className="text-sm font-semibold uppercase tracking-wider text-[#F26B4D]">
-          Estadísticas
-        </span>
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div>
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#F26B4D]">
+            Panel administrativo
+          </span>
 
-        <h2 className="mt-2 text-2xl font-bold text-[#08284F]">
-          Indicadores y estadísticas de UrbanFix
-        </h2>
+          <h2 className="mt-2 text-2xl font-extrabold text-[#08284F] sm:text-3xl">
+            Estadísticas de UrbanFix
+          </h2>
 
-        <p className="mt-2 text-sm text-slate-500">
-          Análisis del funcionamiento y actividad de la plataforma.
-        </p>
+          <p className="mt-2 text-sm text-slate-500">
+            Seguimiento general del funcionamiento de la plataforma.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
+          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+          Datos disponibles
+        </div>
       </div>
 
-      {/* INDICADORES */}
-      <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+      {/* INDICADORES PRINCIPALES */}
+      <div>
+        <h3 className="mb-4 text-base font-bold text-[#08284F]">
+          Indicadores principales
+        </h3>
 
-        <IndicadorCard
-          titulo="Tasa de aceptación"
-          valor={metricas.matchRate}
-          sufijo="%"
-          descripcion="Porcentaje de solicitudes que consiguieron un técnico."
-          icono="📈"
-          color="#10B981"
-        />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
-        <IndicadorCard
-          titulo="Relación clientes / técnicos"
-          valor={metricas.ratioClientesTecnicos}
-          descripcion="Cantidad promedio de clientes por técnico registrado."
-          icono="👥"
-          color="#8B5CF6"
-        />
+          <IndicadorCard
+            titulo="Tasa de aceptación"
+            valor={metricas.matchRate}
+            sufijo="%"
+            descripcion="Porcentaje de coincidencias entre solicitudes y técnicos."
+            icono="📈"
+            color="#10B981"
+          />
 
-        <IndicadorCard
-          titulo="Tiempo medio de aceptación"
-          valor={metricas.timeToMatchMinutos}
-          sufijo=" min"
-          descripcion="Tiempo promedio para que un técnico acepte una solicitud."
-          icono="⏱️"
-          color="#3B82F6"
-        />
+          <IndicadorCard
+            titulo="Relación clientes / técnicos"
+            valor={metricas.ratioClientesTecnicos}
+            descripcion="Relación entre clientes y técnicos."
+            icono="👥"
+            color="#8B5CF6"
+          />
 
-        <IndicadorCard
-          titulo="Tasa de abandono"
-          valor={abandono.tasaAbandono}
-          sufijo="%"
-          descripcion="Porcentaje de solicitudes que no llegaron a completarse."
-          icono="⚠️"
-          color="#F26B4D"
-        />
+          <IndicadorCard
+            titulo="Tiempo medio de aceptación"
+            valor={metricas.timeToMatchMinutos}
+            sufijo=" min"
+            descripcion="Tiempo promedio hasta encontrar un técnico."
+            icono="⏱️"
+            color="#3B82F6"
+          />
 
+          <IndicadorCard
+            titulo="Tasa de abandono"
+            valor={abandono.tasaAbandono}
+            sufijo="%"
+            descripcion="Porcentaje de los intentos de creación de solicitudes que no termina en la creación exitosa de una solicitud."
+            icono="⚠️"
+            color="#F26B4D"
+          />
+
+        </div>
       </div>
 
       {/* GRÁFICOS */}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+      <div>
+        <h3 className="mb-4 text-base font-bold text-[#08284F]">
+          Análisis de actividad
+        </h3>
 
-        {/* RENDIMIENTO */}
-        <GraficoCard
-          titulo="Rendimiento de la plataforma"
-          descripcion="Indicadores porcentuales de UrbanFix."
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={datosRendimiento}
-              layout="vertical"
-              margin={{ top: 5, right: 20, left: 15, bottom: 5 }}
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+
+          {/* SOLICITUDES POR SERVICIO */}
+          <div className="xl:col-span-2">
+            <GraficoCard
+              titulo="Solicitudes por servicio"
+              descripcion="Cantidad de solicitudes agrupadas según el servicio solicitado."
             >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                horizontal={false}
-              />
-
-              <XAxis
-                type="number"
-                domain={[0, 100]}
-                unit="%"
-                tick={{ fontSize: 11 }}
-              />
-
-              <YAxis
-                type="category"
-                dataKey="nombre"
-                width={105}
-                tick={{ fontSize: 11 }}
-              />
-
-              <Tooltip
-                formatter={(value) => [`${value}%`, "Valor"]}
-              />
-
-              <Bar
-                dataKey="valor"
-                fill="#F26B4D"
-                radius={[0, 6, 6, 0]}
-                barSize={25}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </GraficoCard>
-
-
-        {/* SOLICITUDES COMPLETADAS Y ABANDONADAS */}
-        <GraficoCard
-          titulo="Estado de las solicitudes"
-          descripcion="Comparación entre solicitudes completadas y abandonadas."
-        >
-          {datosEstadoSolicitudes.some((item) => item.cantidad > 0) ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={datosEstadoSolicitudes}
-                  dataKey="cantidad"
-                  nameKey="nombre"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={90}
-                  innerRadius={55}
-                  paddingAngle={4}
-                  label={({ percent }) =>
-                    `${(percent * 100).toFixed(0)}%`
-                  }
-                >
-                  {datosEstadoSolicitudes.map((entry, index) => (
-                    <Cell
-                      key={entry.nombre}
-                      fill={index === 0 ? "#10B981" : "#F26B4D"}
+              {datosSolicitudesServicio.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={datosSolicitudesServicio}
+                    margin={{
+                      top: 15,
+                      right: 15,
+                      left: -15,
+                      bottom: 5,
+                    }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
                     />
-                  ))}
-                </Pie>
 
-                <Tooltip
-                  formatter={(value) => [
-                    `${value} solicitudes`,
-                    "Cantidad",
-                  ]}
-                />
+                    <XAxis
+                      dataKey="nombre"
+                      tick={{ fontSize: 12, fill: "#64748B" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
 
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex h-full items-center justify-center text-sm text-slate-400">
-              No hay datos disponibles.
-            </div>
-          )}
-        </GraficoCard>
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 12, fill: "#64748B" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
 
+                    <Tooltip
+                      cursor={{ fill: "#F1F5F9" }}
+                      formatter={(value) => [
+                        `${value} solicitudes`,
+                        "Cantidad",
+                      ]}
+                    />
+
+                    <Bar
+                      dataKey="cantidad"
+                      name="Solicitudes"
+                      fill="#F26B4D"
+                      radius={[8, 8, 0, 0]}
+                      maxBarSize={55}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-full items-center justify-center text-sm text-slate-400">
+                  No hay solicitudes por servicio disponibles.
+                </div>
+              )}
+            </GraficoCard>
+          </div>
+
+          {/* ESTADO DE SOLICITUDES */}
+          <GraficoCard
+            titulo="Estado de solicitudes"
+            descripcion="Comparación entre intentos completados y abandonados."
+          >
+            {datosEstadoSolicitudes.some(
+              (item) => item.cantidad > 0
+            ) ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={datosEstadoSolicitudes}
+                    dataKey="cantidad"
+                    nameKey="nombre"
+                    cx="50%"
+                    cy="45%"
+                    outerRadius={85}
+                    innerRadius={55}
+                    paddingAngle={4}
+                    label={({ percent }) =>
+                      `${(percent * 100).toFixed(0)}%`
+                    }
+                  >
+                    {datosEstadoSolicitudes.map((entry, index) => (
+                      <Cell
+                        key={entry.nombre}
+                        fill={COLORES[index]}
+                      />
+                    ))}
+                  </Pie>
+
+                  <Tooltip
+                    formatter={(value) => [
+                      `${value} intentos`,
+                      "Cantidad",
+                    ]}
+                  />
+
+                  <Legend
+                    verticalAlign="bottom"
+                    iconType="circle"
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-slate-400">
+                No hay datos disponibles.
+              </div>
+            )}
+          </GraficoCard>
+
+        </div>
       </div>
 
-      {/* RESUMEN DE SOLICITUDES */}
-      <div className="mt-8">
-
-        <h3 className="mb-4 text-lg font-bold text-[#08284F]">
-          Resumen de solicitudes
+      {/* RESUMEN GENERAL */}
+      <div>
+        <h3 className="mb-4 text-base font-bold text-[#08284F]">
+          Resumen general
         </h3>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -430,12 +437,37 @@ const DashboardMetricas = () => {
             valor={abandono.totalIntentos ?? 0}
             descripcion="Total de formularios iniciados."
             icono="📋"
+            color="#08284F"
+          />
+
+          <IndicadorCard
+            titulo="Solicitudes creadas"
+            valor={metricas.requestCount ?? 0}
+            descripcion="Cantidad de solicitudes registradas."
+            icono="📝"
+            color="#10B981"
+          />
+
+          <IndicadorCard
+            titulo="Usuarios registrados"
+            valor={metricas.registeredCount ?? 0}
+            descripcion="Cantidad total de usuarios registrados."
+            icono="👤"
+            color="#3B82F6"
+          />
+
+          <IndicadorCard
+            titulo="Usuarios activos diarios"
+            valor={metricas.dau ?? 0}
+            descripcion="Usuarios activos durante el día."
+            icono="📊"
+            color="#8B5CF6"
           />
 
           <IndicadorCard
             titulo="Solicitudes completadas"
             valor={abandono.totalCompletados ?? 0}
-            descripcion="Solicitudes que finalizaron correctamente."
+            descripcion="Intentos que finalizaron correctamente."
             icono="✅"
             color="#10B981"
           />
@@ -443,17 +475,26 @@ const DashboardMetricas = () => {
           <IndicadorCard
             titulo="Solicitudes abandonadas"
             valor={abandono.totalAbandonados ?? 0}
-            descripcion="Solicitudes que no llegaron a completarse."
+            descripcion="Intentos que no llegaron a completarse."
             icono="⚠️"
             color="#F26B4D"
           />
 
           <IndicadorCard
-            titulo="Usuarios activos diarios"
-            valor={metricas.dau ?? 0}
-            descripcion="Usuarios activos durante el día."
-            icono="👤"
+            titulo="Visitas al registro"
+            valor={metricas.registrationViewsCount ?? 0}
+            descripcion="Visitas registradas en la pantalla de registro."
+            icono="🖥️"
             color="#3B82F6"
+          />
+
+          <IndicadorCard
+            titulo="Tasa de activación"
+            valor={metricas.activationRate}
+            sufijo="%"
+            descripcion="Indicador de activación de usuarios."
+            icono="🚀"
+            color="#8B5CF6"
           />
 
         </div>

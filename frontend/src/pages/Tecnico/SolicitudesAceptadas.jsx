@@ -3,7 +3,10 @@ import { useState } from "react";
 import { useTecnico } from "../../context/TecnicoContext";
 import CartelAviso from "../../Components/CartelAviso";
 
-function SolicitudesAceptadas() {
+function SolicitudesAceptadas({
+  servicioSeleccionado = "TODOS",
+  serviciosTecnico = [],
+}) {
   const {
     misTrabajos = [],
     cargando,
@@ -62,45 +65,84 @@ function SolicitudesAceptadas() {
   const estados = {
     ACEPTADA: {
       nombre: "Aceptada",
-      clases: "bg-blue-50 text-blue-700 ring-blue-200",
+      clases: "bg-blue-50 text-blue-700",
       punto: "bg-blue-500",
     },
     EN_PROGRESO: {
       nombre: "En progreso",
-      clases: "bg-orange-50 text-orange-700 ring-orange-200",
+      clases: "bg-orange-50 text-orange-700",
       punto: "bg-urban-button",
     },
     COMPLETADA: {
       nombre: "Completada",
-      clases: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+      clases: "bg-emerald-50 text-emerald-700",
       punto: "bg-emerald-500",
     },
     CANCELADA: {
       nombre: "Cancelada",
-      clases: "bg-slate-100 text-slate-600 ring-slate-200",
+      clases: "bg-slate-100 text-slate-600",
       punto: "bg-slate-400",
     },
   };
 
+  // Primero filtramos los trabajos por servicio.
+  const trabajosPorServicio = misTrabajos.filter((trabajo) => {
+    if (servicioSeleccionado === "TODOS") {
+      return true;
+    }
+
+    const idServicio =
+      trabajo.idServicio ??
+      trabajo.servicio?.idServicio ??
+      trabajo.servicioId ??
+      trabajo.servicio?.id;
+
+    if (idServicio != null) {
+      return String(idServicio) === String(servicioSeleccionado);
+    }
+
+    // Alternativa por nombre si el trabajo no trae el ID.
+    const servicioElegido = serviciosTecnico.find(
+      (servicio) =>
+        String(servicio.idServicio) === String(servicioSeleccionado)
+    );
+
+    const nombreServicio =
+      trabajo.servicio?.nombreServicio ??
+      trabajo.nombreServicio ??
+      trabajo.categoria;
+
+    if (!nombreServicio || !servicioElegido?.nombreServicio) {
+      return false;
+    }
+
+    return (
+      nombreServicio.trim().toLowerCase() ===
+      servicioElegido.nombreServicio.trim().toLowerCase()
+    );
+  });
+
+  // Después aplicamos el filtro por estado.
+  const trabajosFiltrados = trabajosPorServicio.filter((trabajo) => {
+    if (filtro === "TODOS") {
+      return true;
+    }
+
+    return String(trabajo.estado || "").toUpperCase() === filtro;
+  });
+
+  // Las cantidades también respetan el servicio seleccionado.
   const cantidadPorEstado = (estado) =>
-    misTrabajos.filter(
+    trabajosPorServicio.filter(
       (trabajo) =>
         String(trabajo.estado || "").toUpperCase() === estado
     ).length;
-
-  const trabajosFiltrados = misTrabajos.filter((trabajo) => {
-    if (filtro === "TODOS") return true;
-
-    return (
-      String(trabajo.estado || "").toUpperCase() === filtro
-    );
-  });
 
   const filtros = [
     {
       valor: "TODOS",
       nombre: "Todos",
-      cantidad: misTrabajos.length,
+      cantidad: trabajosPorServicio.length,
     },
     {
       valor: "ACEPTADA",
@@ -125,48 +167,48 @@ function SolicitudesAceptadas() {
   ];
 
   return (
-    <section className="space-y-6">
-      {/* Encabezado */}
+    <section className="space-y-4">
+
+      {/* Encabezado compacto */}
       <header>
-        <p className="text-sm font-bold uppercase tracking-wider text-urban-secundario">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-urban-secundario">
           Organización del trabajo
         </p>
 
-        <h2 className="mt-2 text-2xl font-extrabold text-urban-principal">
+        <h2 className="mt-1 text-lg font-extrabold text-urban-principal">
           Mis trabajos
         </h2>
 
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-urban-texto-secundario">
-          Consultá tus trabajos asignados y actualizá su estado a
-          medida que avanzás.
+        <p className="mt-1 text-xs text-urban-texto-secundario">
+          Consultá tus trabajos asignados y actualizá su estado.
         </p>
       </header>
 
-      {/* Resumen */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-          <p className="text-sm text-urban-texto-secundario">
-            Total de trabajos
+      {/* Resumen horizontal */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+          <p className="text-[10px] text-urban-texto-secundario">
+            Total
           </p>
-          <p className="mt-2 text-3xl font-extrabold text-urban-principal">
-            {misTrabajos.length}
+          <p className="mt-1 text-xl font-extrabold text-urban-principal">
+            {trabajosPorServicio.length}
           </p>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-          <p className="text-sm text-urban-texto-secundario">
+        <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+          <p className="text-[10px] text-urban-texto-secundario">
             En progreso
           </p>
-          <p className="mt-2 text-3xl font-extrabold text-urban-button">
+          <p className="mt-1 text-xl font-extrabold text-urban-button">
             {cantidadPorEstado("EN_PROGRESO")}
           </p>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-          <p className="text-sm text-urban-texto-secundario">
+        <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+          <p className="text-[10px] text-urban-texto-secundario">
             Completados
           </p>
-          <p className="mt-2 text-3xl font-extrabold text-emerald-600">
+          <p className="mt-1 text-xl font-extrabold text-emerald-600">
             {cantidadPorEstado("COMPLETADA")}
           </p>
         </div>
@@ -177,9 +219,7 @@ function SolicitudesAceptadas() {
         <CartelAviso
           mensaje={aviso.mensaje}
           tipo={aviso.tipo}
-          onCerrar={() =>
-            setAviso({ mensaje: "", tipo: "info" })
-          }
+          onCerrar={() => setAviso({ mensaje: "", tipo: "info" })}
         />
       )}
 
@@ -191,19 +231,19 @@ function SolicitudesAceptadas() {
         />
       )}
 
-      {/* Filtros */}
+      {/* Filtros por estado */}
       <div>
-        <h3 className="text-sm font-bold text-urban-principal">
+        <h3 className="text-xs font-bold text-urban-principal">
           Filtrar por estado
         </h3>
 
-        <div className="mt-3 flex gap-2 overflow-x-auto pb-2">
+        <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
           {filtros.map((opcion) => (
             <button
               key={opcion.valor}
               type="button"
               onClick={() => setFiltro(opcion.valor)}
-              className={`inline-flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition ${
                 filtro === opcion.valor
                   ? "border-urban-principal bg-urban-principal text-white"
                   : "border-slate-200 bg-white text-urban-texto-secundario hover:bg-urban-fondo"
@@ -212,7 +252,7 @@ function SolicitudesAceptadas() {
               {opcion.nombre}
 
               <span
-                className={`rounded-md px-2 py-0.5 text-xs ${
+                className={`rounded px-1.5 py-0.5 text-[10px] ${
                   filtro === opcion.valor
                     ? "bg-white/15 text-white"
                     : "bg-urban-fondo text-urban-principal"
@@ -225,56 +265,63 @@ function SolicitudesAceptadas() {
         </div>
       </div>
 
-      {/* Lista de trabajos */}
+      {/* Listado */}
       {cargando ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          {[1, 2].map((item) => (
+        <div className="space-y-2">
+          {[1, 2, 3].map((item) => (
             <div
               key={item}
-              className="animate-pulse rounded-2xl border border-slate-200 bg-white p-5"
+              className="animate-pulse rounded-lg border border-slate-200 bg-white p-4"
             >
               <div className="h-4 w-1/3 rounded bg-slate-200" />
-              <div className="mt-4 h-6 w-2/3 rounded bg-slate-200" />
-              <div className="mt-4 h-4 rounded bg-slate-100" />
-              <div className="mt-2 h-4 w-4/5 rounded bg-slate-100" />
+              <div className="mt-2 h-3 w-2/3 rounded bg-slate-100" />
             </div>
           ))}
         </div>
       ) : misTrabajos.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-urban-fondo/50 px-5 py-12 text-center">
-          <span className="text-3xl" aria-hidden="true">
+        <div className="rounded-lg border border-dashed border-slate-300 bg-urban-fondo/50 px-4 py-8 text-center">
+          <span className="text-2xl" aria-hidden="true">
             🧰
           </span>
 
-          <h3 className="mt-4 text-lg font-bold text-urban-principal">
+          <h3 className="mt-2 text-sm font-bold text-urban-principal">
             Todavía no tenés trabajos asignados
           </h3>
 
-          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-urban-texto-secundario">
-            Las solicitudes que aceptes aparecerán acá para que
-            puedas administrarlas.
+          <p className="mt-1 text-xs text-urban-texto-secundario">
+            Las solicitudes que aceptes aparecerán acá.
+          </p>
+        </div>
+      ) : trabajosPorServicio.length === 0 ? (
+        <div className="rounded-lg border border-slate-200 bg-urban-fondo/50 p-5 text-center">
+          <p className="text-sm font-semibold text-urban-principal">
+            No hay trabajos de este servicio.
+          </p>
+
+          <p className="mt-1 text-xs text-urban-texto-secundario">
+            Seleccioná otro servicio para consultar tus trabajos.
           </p>
         </div>
       ) : trabajosFiltrados.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-urban-fondo/50 p-8 text-center">
-          <p className="font-semibold text-urban-principal">
+        <div className="rounded-lg border border-slate-200 bg-urban-fondo/50 p-5 text-center">
+          <p className="text-sm font-semibold text-urban-principal">
             No hay trabajos en esta categoría.
           </p>
-          <p className="mt-2 text-sm text-urban-texto-secundario">
+
+          <p className="mt-1 text-xs text-urban-texto-secundario">
             Seleccioná otro filtro para consultar tus trabajos.
           </p>
         </div>
       ) : (
-        <div className="grid items-stretch gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+
           {trabajosFiltrados.map((solicitud) => {
             const id = solicitud.idSolicitud ?? solicitud.id;
-            const estado = String(
-              solicitud.estado || ""
-            ).toUpperCase();
+            const estado = String(solicitud.estado || "").toUpperCase();
 
             const estadoInfo = estados[estado] || {
               nombre: estado || "Sin estado",
-              clases: "bg-slate-100 text-slate-600 ring-slate-200",
+              clases: "bg-slate-100 text-slate-600",
               punto: "bg-slate-400",
             };
 
@@ -304,138 +351,94 @@ function SolicitudesAceptadas() {
             return (
               <article
                 key={id}
-                className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:border-slate-300 hover:shadow-md"
+                className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 transition hover:border-slate-300 hover:shadow-sm lg:flex-row lg:items-center"
               >
-                <div
-                  className={`h-1 ${
-                    estado === "ACEPTADA"
-                      ? "bg-blue-500"
-                      : estado === "EN_PROGRESO"
-                      ? "bg-urban-button"
-                      : estado === "COMPLETADA"
-                      ? "bg-emerald-500"
-                      : "bg-slate-300"
-                  }`}
-                />
+                {/* Identificación y detalle */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] font-bold text-urban-texto-secundario">
+                      #{id}
+                    </span>
 
-                <div className="flex flex-1 flex-col p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold uppercase tracking-wider text-urban-texto-secundario">
-                        Trabajo #{id}
-                      </p>
-
-                      <h3 className="mt-2 break-words text-xl font-extrabold text-urban-principal">
-                        {servicio}
-                      </h3>
-                    </div>
+                    <h3 className="text-sm font-bold text-urban-principal">
+                      {servicio}
+                    </h3>
 
                     <span
-                      className={`inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold ring-1 ${estadoInfo.clases}`}
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-bold ${estadoInfo.clases}`}
                     >
                       <span
-                        className={`h-2 w-2 rounded-full ${estadoInfo.punto}`}
+                        className={`h-1.5 w-1.5 rounded-full ${estadoInfo.punto}`}
                       />
                       {estadoInfo.nombre}
                     </span>
                   </div>
 
-                  <div className="mt-5">
-                    <p className="text-xs font-bold uppercase tracking-wide text-urban-texto-secundario">
-                      Detalle del trabajo
-                    </p>
-
-                    <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">
-                      {detalle}
-                    </p>
-                  </div>
+                  <p className="mt-1 line-clamp-2 break-words text-xs leading-5 text-slate-600">
+                    {detalle}
+                  </p>
 
                   {(cliente || direccion) && (
-                    <div className="mt-5 space-y-3 rounded-xl bg-urban-fondo p-4">
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-urban-texto-secundario">
                       {cliente && (
-                        <div className="flex items-start gap-3">
-                          <span aria-hidden="true">👤</span>
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold text-urban-texto-secundario">
-                              Cliente
-                            </p>
-                            <p className="mt-1 break-words text-sm font-semibold text-urban-principal">
-                              {cliente}
-                            </p>
-                          </div>
-                        </div>
+                        <span>👤 {cliente}</span>
                       )}
 
                       {direccion && (
-                        <div className="flex items-start gap-3">
-                          <span aria-hidden="true">📍</span>
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold text-urban-texto-secundario">
-                              Dirección
-                            </p>
-                            <p className="mt-1 break-words text-sm text-slate-700">
-                              {direccion}
-                            </p>
-                          </div>
-                        </div>
+                        <span className="break-words">
+                          📍 {direccion}
+                        </span>
                       )}
                     </div>
                   )}
+                </div>
 
-                  <footer className="mt-auto border-t border-slate-100 pt-5">
-                    {estado === "ACEPTADA" && (
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <button
-                          type="button"
-                          disabled={procesando}
-                          onClick={() =>
-                            manejarAccion(solicitud, "iniciar")
-                          }
-                          className="rounded-xl bg-urban-button px-4 py-3 text-sm font-bold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {procesando ? "Procesando..." : "Iniciar trabajo"}
-                        </button>
-
-                        <button
-                          type="button"
-                          disabled={procesando}
-                          onClick={() =>
-                            manejarAccion(solicitud, "cancelar")
-                          }
-                          className="rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-bold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {procesando ? "Procesando..." : "Cancelar"}
-                        </button>
-                      </div>
-                    )}
-
-                    {estado === "EN_PROGRESO" && (
+                {/* Acciones */}
+                <div className="flex shrink-0 flex-wrap gap-2 border-t border-slate-100 pt-2 lg:border-l lg:border-t-0 lg:pl-3 lg:pt-0">
+                  {estado === "ACEPTADA" && (
+                    <>
                       <button
                         type="button"
                         disabled={procesando}
-                        onClick={() =>
-                          manejarAccion(solicitud, "completar")
-                        }
-                        className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={() => manejarAccion(solicitud, "iniciar")}
+                        className="rounded-md bg-urban-button px-3 py-2 text-xs font-bold text-white transition hover:brightness-95 disabled:opacity-50"
                       >
-                        {procesando
-                          ? "Procesando..."
-                          : "Completar trabajo"}
+                        {procesando ? "Procesando..." : "Iniciar"}
                       </button>
-                    )}
 
-                    {estado === "COMPLETADA" && (
-                      <p className="rounded-xl bg-emerald-50 px-4 py-3 text-center text-sm font-semibold text-emerald-700">
-                        ✓ Trabajo completado
-                      </p>
-                    )}
+                      <button
+                        type="button"
+                        disabled={procesando}
+                        onClick={() => manejarAccion(solicitud, "cancelar")}
+                        className="rounded-md border border-red-200 px-3 py-2 text-xs font-bold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                      >
+                        Cancelar
+                      </button>
+                    </>
+                  )}
 
-                    {estado === "CANCELADA" && (
-                      <p className="rounded-xl bg-slate-50 px-4 py-3 text-center text-sm font-medium text-slate-500">
-                        Este trabajo fue cancelado.
-                      </p>
-                    )}
-                  </footer>
+                  {estado === "EN_PROGRESO" && (
+                    <button
+                      type="button"
+                      disabled={procesando}
+                      onClick={() => manejarAccion(solicitud, "completar")}
+                      className="rounded-md bg-emerald-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+                    >
+                      {procesando ? "Procesando..." : "Completar"}
+                    </button>
+                  )}
+
+                  {estado === "COMPLETADA" && (
+                    <span className="self-center text-xs font-semibold text-emerald-700">
+                      ✓ Trabajo completado
+                    </span>
+                  )}
+
+                  {estado === "CANCELADA" && (
+                    <span className="self-center text-xs text-slate-500">
+                      Trabajo cancelado
+                    </span>
+                  )}
                 </div>
               </article>
             );

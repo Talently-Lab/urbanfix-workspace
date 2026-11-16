@@ -34,6 +34,8 @@ const DashboardListado = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("TODOS");
+  const [cancelandoId, setCancelandoId] = useState(null);
+  const [mensaje, setMensaje] = useState("");
 
   const configuracion = {
     clientes: {
@@ -63,6 +65,7 @@ const DashboardListado = () => {
       try {
         setLoading(true);
         setError("");
+        setMensaje("");
 
         const response = await api.get(
           esSolicitud ? "/admin/solicitudes" : "/admin/usuarios"
@@ -130,16 +133,72 @@ const DashboardListado = () => {
     ? columnasSolicitudes
     : columnasUsuarios;
 
+  // CANCELAR SOLICITUD
+  const cancelarSolicitud = async (solicitud) => {
+    const id = solicitud.idSolicitud ?? solicitud.id;
+
+    if (!id) {
+      setMensaje("No se encontró el identificador de la solicitud.");
+      return;
+    }
+
+    const confirmar = window.confirm(
+      `¿Estás seguro de que querés cancelar la solicitud #${id}?`
+    );
+
+    if (!confirmar) return;
+
+    try {
+      setCancelandoId(id);
+      setMensaje("");
+
+      await api.patch(`/admin/solicitudes/${id}/cancelar`);
+
+      setDatos((datosActuales) =>
+        datosActuales.map((item) => {
+          const idItem = item.idSolicitud ?? item.id;
+
+          return idItem === id
+            ? { ...item, estado: "CANCELADA" }
+            : item;
+        })
+      );
+
+      setMensaje(`La solicitud #${id} fue cancelada correctamente.`);
+    } catch (error) {
+      console.error("Error al cancelar solicitud:", error);
+
+      setMensaje(
+        error.response?.data?.mensaje ||
+          error.response?.data?.error ||
+          "No se pudo cancelar la solicitud."
+      );
+    } finally {
+      setCancelandoId(null);
+    }
+  };
+
   // FILTRAR POR ESTADO
   const datosFiltrados = esSolicitud
     ? datos.filter((solicitud) => {
         if (filtroEstado === "TODOS") return true;
 
-        return (
-          solicitud.estado?.toUpperCase() === filtroEstado
-        );
+        return solicitud.estado?.toUpperCase() === filtroEstado;
       })
     : datos;
+
+  // ESTADOS EN LOS QUE NO SE PERMITE CANCELAR DESDE ESTA TABLA
+  const puedeCancelar = (estado) => {
+    const estadosFinales = [
+      "CANCELADA",
+      "COMPLETADA",
+      "RECHAZADA",
+    ];
+
+    return !estadosFinales.includes(
+      String(estado || "").toUpperCase()
+    );
+  };
 
   return (
     <main className="min-h-screen bg-[#F1F6FA] p-4 md:p-8">
@@ -202,6 +261,16 @@ const DashboardListado = () => {
           </div>
         )}
 
+        {/* MENSAJE DE ACCIÓN */}
+        {mensaje && (
+          <div
+            role="status"
+            className="border-b border-slate-100 bg-[#F1F6FA] px-4 py-3 text-sm font-medium text-[#08284F]"
+          >
+            {mensaje}
+          </div>
+        )}
+
         {/* ENCABEZADO DE REGISTROS */}
         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
           <h2 className="text-sm font-semibold text-[#08284F]">
@@ -248,6 +317,12 @@ const DashboardListado = () => {
                       {columna.titulo}
                     </th>
                   ))}
+
+                  {esSolicitud && (
+                    <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide">
+                      Acciones
+                    </th>
+                  )}
                 </tr>
               </thead>
 
@@ -275,9 +350,7 @@ const DashboardListado = () => {
                         >
                           {esSolicitud && columna.titulo === "Estado" ? (
                             <span
-                              className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold ${
-                                obtenerEstiloEstado(valor)
-                              }`}
+                              className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold ${obtenerEstiloEstado(valor)}`}
                             >
                               {String(valor ?? "SIN ESTADO").replaceAll("_", " ")}
                             </span>
@@ -287,6 +360,32 @@ const DashboardListado = () => {
                         </td>
                       );
                     })}
+
+                    {/* ACCIONES DE SOLICITUDES */}
+                    {esSolicitud && (
+                      <td className="whitespace-nowrap px-3 py-2">
+                        {puedeCancelar(registro.estado) ? (
+                          <button
+                            type="button"
+                            onClick={() => cancelarSolicitud(registro)}
+                            disabled={
+                              cancelandoId ===
+                              (registro.idSolicitud ?? registro.id)
+                            }
+                            className="rounded-lg bg-red-50 px-3 py-2 text-[11px] font-bold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {cancelandoId ===
+                            (registro.idSolicitud ?? registro.id)
+                              ? "Cancelando..."
+                              : "Cancelar"}
+                          </button>
+                        ) : (
+                          <span className="text-[11px] font-medium text-slate-400">
+                            No disponible
+                          </span>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
 
@@ -295,7 +394,6 @@ const DashboardListado = () => {
           </div>
         )}
       </section>
-
     </main>
   );
 };
