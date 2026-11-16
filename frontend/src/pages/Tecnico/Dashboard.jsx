@@ -1,5 +1,6 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import api from "../../Services/api.js";
 import { useTecnico } from "../../context/TecnicoContext";
 import SolicitudesDisponibles from "../Tecnico/SolicitudesDisponibles";
 import SolicitudesAceptadas from "../Tecnico/SolicitudesAceptadas";
@@ -7,27 +8,95 @@ import SolicitudesAceptadas from "../Tecnico/SolicitudesAceptadas";
 function Dashboard() {
   const [vista, setVista] = useState("disponibles");
 
+  const [serviciosTecnico, setServiciosTecnico] = useState([]);
+  const [servicioSeleccionado, setServicioSeleccionado] = useState("TODOS");
+  const [cargandoServicios, setCargandoServicios] = useState(true);
+  const [errorServicios, setErrorServicios] = useState("");
+
   const {
     solicitudesPendientes = [],
     misTrabajos = [],
   } = useTecnico();
 
+  useEffect(() => {
+    const obtenerServicios = async () => {
+      try {
+        const respuesta = await api.get("/tecnicos/me/servicios");
+
+        setServiciosTecnico(
+          Array.isArray(respuesta.data?.servicios)
+            ? respuesta.data.servicios
+            : []
+        );
+      } catch (error) {
+        console.error("Error al obtener servicios del técnico:", error);
+        setErrorServicios("No se pudieron cargar tus servicios.");
+      } finally {
+        setCargandoServicios(false);
+      }
+    };
+
+    obtenerServicios();
+  }, []);
+
+  // Comprueba si una solicitud o trabajo pertenece al servicio seleccionado.
+  const coincideServicio = (item) => {
+    if (servicioSeleccionado === "TODOS") {
+      return true;
+    }
+
+    const servicioElegido = serviciosTecnico.find(
+      (servicio) =>
+        String(servicio.idServicio) === String(servicioSeleccionado)
+    );
+
+    const idServicio =
+      item.idServicio ??
+      item.servicio?.idServicio ??
+      item.servicioId ??
+      item.servicio?.id;
+
+    // Primero se compara por identificador.
+    if (idServicio != null) {
+      return String(idServicio) === String(servicioSeleccionado);
+    }
+
+    // Si el backend no envía el ID, se compara por nombre.
+    const nombreServicio =
+      item.servicio?.nombreServicio ??
+      item.nombreServicio ??
+      item.categoria;
+
+    if (!nombreServicio || !servicioElegido?.nombreServicio) {
+      return false;
+    }
+
+    return (
+      nombreServicio.trim().toLowerCase() ===
+      servicioElegido.nombreServicio.trim().toLowerCase()
+    );
+  };
+
+  const solicitudesFiltradas = solicitudesPendientes.filter(coincideServicio);
+  const trabajosFiltrados = misTrabajos.filter(coincideServicio);
+
   const botones = [
     {
       id: "disponibles",
       titulo: "Solicitudes disponibles",
-      cantidad: solicitudesPendientes.length,
+      cantidad: solicitudesFiltradas.length,
     },
     {
       id: "trabajos",
       titulo: "Mis trabajos",
-      cantidad: misTrabajos.length,
+      cantidad: trabajosFiltrados.length,
     },
   ];
 
   return (
     <main className="min-h-screen bg-urban-fondo px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
       <div className="mx-auto max-w-7xl space-y-7">
+
         {/* Encabezado */}
         <header className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -60,69 +129,6 @@ function Dashboard() {
             </div>
           </div>
         </header>
-
-        {/* Resumen */}
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => setVista("disponibles")}
-            className={`rounded-2xl border bg-white p-5 text-left shadow-sm transition hover:shadow-md ${
-              vista === "disponibles"
-                ? "border-urban-button ring-2 ring-urban-button/10"
-                : "border-slate-200"
-            }`}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-urban-texto-secundario">
-                  Solicitudes disponibles
-                </p>
-
-                <p className="mt-2 text-3xl font-extrabold text-urban-principal">
-                  {solicitudesPendientes.length}
-                </p>
-
-                <p className="mt-2 text-xs text-urban-texto-secundario">
-                  Trabajos que podés revisar
-                </p>
-              </div>
-
-              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 text-xl">
-                📋
-              </span>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setVista("trabajos")}
-            className={`rounded-2xl border bg-white p-5 text-left shadow-sm transition hover:shadow-md ${
-              vista === "trabajos"
-                ? "border-urban-button ring-2 ring-urban-button/10"
-                : "border-slate-200"
-            }`}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-urban-texto-secundario">
-                  Mis trabajos
-                </p>
-
-                <p className="mt-2 text-3xl font-extrabold text-urban-principal">
-                  {misTrabajos.length}
-                </p>
-
-                <p className="mt-2 text-xs text-urban-texto-secundario">
-                  Trabajos asignados a vos
-                </p>
-              </div>
-
-              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-xl">
-                🧰
-              </span>
-            </div>
-          </button>
-        </section>
 
         {/* Navegación */}
         <nav
@@ -160,18 +166,73 @@ function Dashboard() {
           })}
         </nav>
 
+        {/* Filtro por servicio */}
+        <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-sm font-bold text-urban-principal">
+              Filtrar por servicio
+            </h2>
+
+            <p className="mt-1 text-xs text-urban-texto-secundario">
+              Seleccioná uno de los servicios que tenés asignados.
+            </p>
+          </div>
+
+          <div className="w-full sm:w-72">
+            <select
+              value={servicioSeleccionado}
+              onChange={(e) => setServicioSeleccionado(e.target.value)}
+              disabled={cargandoServicios || serviciosTecnico.length === 0}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-urban-principal outline-none transition focus:border-urban-button disabled:cursor-not-allowed disabled:bg-slate-100"
+            >
+              <option value="TODOS">Todos mis servicios</option>
+
+              {serviciosTecnico.map((servicio) => (
+                <option
+                  key={servicio.idServicio}
+                  value={String(servicio.idServicio)}
+                >
+                  {servicio.nombreServicio}
+                </option>
+              ))}
+            </select>
+
+            {cargandoServicios && (
+              <p className="mt-1 text-xs text-urban-texto-secundario">
+                Cargando servicios...
+              </p>
+            )}
+
+            {errorServicios && (
+              <p className="mt-1 text-xs text-red-600">
+                {errorServicios}
+              </p>
+            )}
+
+            {!cargandoServicios &&
+              !errorServicios &&
+              serviciosTecnico.length === 0 && (
+                <p className="mt-1 text-xs text-urban-texto-secundario">
+                  No tenés servicios asignados.
+                </p>
+              )}
+          </div>
+        </section>
+
         {/* Contenido de la pestaña */}
         <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:p-7">
           {vista === "disponibles" ? (
-            <SolicitudesDisponibles />
+            <SolicitudesDisponibles
+              servicioSeleccionado={servicioSeleccionado}
+              serviciosTecnico={serviciosTecnico}
+            />
           ) : (
-            <SolicitudesAceptadas />
+            <SolicitudesAceptadas
+              servicioSeleccionado={servicioSeleccionado}
+              serviciosTecnico={serviciosTecnico}
+            />
           )}
         </section>
-
-        <footer className="pb-2 text-center text-xs text-urban-texto-secundario">
-          UrbanFix · Panel de gestión de servicios
-        </footer>
       </div>
     </main>
   );

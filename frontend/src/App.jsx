@@ -1,6 +1,5 @@
 import { Route, Routes } from 'react-router-dom'
 
-
 //Paginas Utilizadas
 import Technician from './pages/Technician'
 import Login from './pages/Login'
@@ -18,6 +17,7 @@ import NotFound from "./pages/NotFound";
 import DashboardListado from "./pages/Administrador/DashboardListado";
 import PreguntasFrecuentes from './pages/PreguntasFrecuentes'
 import Profesionales from './pages/Profesionales'
+
 function App() {
   return (
     <div>
