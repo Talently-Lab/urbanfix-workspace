@@ -1,6 +1,7 @@
+
 # Contrato de API — UrbanFix Solutions
 
-**Última actualización:** 9 de noviembre de 2026
+**Última actualización:** 16 de noviembre de 2026
 
 ## 1. Información general
 
@@ -8,49 +9,67 @@
 - **Formato:** JSON en request y response.
 - **Autenticación:** JWT. Los endpoints protegidos requieren el header `Authorization: Bearer <token>`.
 - **Roles:** cada usuario tiene un único rol: `CLIENTE`, `TECNICO` o `ADMINISTRADOR`.
-- **Formato de error:**
+
+**Formato de error estándar:**
 
 ```json
-{ "error": "La solicitud ya fue aceptada por otro técnico" }
+{
+  "error": "Descripción detallada del error"
+}
 ```
 
-- **Códigos HTTP:** `200` OK · `201` recurso creado · `204` recurso eliminado · `400` datos inválidos · `401` token ausente o inválido · `403` rol o usuario sin permiso · `404` recurso inexistente · `409` acción no válida para el estado actual · `500` error interno del servidor.
+**Códigos HTTP:**
 
-Fuera de alcance del MVP: pagos integrados, chat en tiempo real, reseñas de usuarios, geolocalización avanzada, edición de perfil propio o de los servicios de un técnico después del registro y edición y baja de servicios por parte del administrador (previstas para la versión 2.0).
+- `200` OK.
+- `201` Recurso creado.
+- `204` Recurso eliminado.
+- `400` Datos inválidos.
+- `401` Token ausente o inválido.
+- `403` Rol o usuario sin permiso.
+- `404` Recurso inexistente.
+- `409` Acción no válida para el estado actual.
+- `500` Error interno del servidor.
 
----
+**Fuera de alcance del MVP (previstos para versión 2.0):** pagos integrados, chat en tiempo real, reseñas/calificaciones de usuarios, geolocalización avanzada en mapa, edición de los servicios de un técnico después del registro, y edición y baja de servicios existentes por parte del administrador.
 
 ## 2. Autenticación
 
-### POST /api/auth/register
+### POST `/api/auth/register`
 
 Registro de usuario. **Auth:** no requiere.
 
-**Body**
+**Body:**
 
 ```json
 {
   "nombre": "Sofia",
   "apellido": "Rodriguez",
   "email": "sofia@mail.com",
-  "password": "12345678",
+  "password": "Password123!",
   "rol": "CLIENTE",
   "numeroTelefono": "1122334455"
 }
 ```
 
-- `nombre`, `apellido`, `email`, `password` y `rol` son obligatorios. `numeroTelefono` es opcional.
-- `password` debe tener al menos 8 caracteres.
-- `rol` admite `CLIENTE` o `TECNICO`. `ADMINISTRADOR` no se asigna por este endpoint (responde `400`).
-- Cuando `rol` es `TECNICO`, el body incluye además `idServicios`, una lista con al menos un id de servicio existente:
+**Reglas de validación:**
+
+- `nombre` y `apellido`: obligatorios, entre 2 y 50 caracteres alfabéticos (sin números ni símbolos especiales).
+- `email`: obligatorio, formato de email válido, único en el sistema (case-insensitive, responde `409` si ya existe).
+- `password`: obligatorio, mínimo 8 caracteres y máximo 72 bytes.
+- `rol`: admite únicamente `CLIENTE` o `TECNICO`. El rol `ADMINISTRADOR` no se asigna por este endpoint (responde `400 Rol inválido`).
+- `numeroTelefono`: opcional, texto de entre 8 y 20 caracteres con formato telefónico válido.
+
+Cuando `rol` es `TECNICO`, el body debe incluir obligatoriamente `idServicios`, una lista con al menos un id de servicio existente (entre 1 y 50 enteros válidos):
 
 ```json
-"idServicios": [1, 3]
+{
+  "idServicios": [1, 3]
+}
 ```
 
 Un técnico no puede registrarse sin servicios: si `idServicios` falta, viene vacío o contiene ids inexistentes, responde `400` y no se crea el usuario. Si el rol es `CLIENTE`, `idServicios` se ignora.
 
-**Respuesta 201**
+**Respuesta 201:**
 
 ```json
 {
@@ -66,21 +85,24 @@ Un técnico no puede registrarse sin servicios: si `idServicios` falta, viene va
 }
 ```
 
-**Errores:** `400` datos inválidos, `409` email ya registrado.
+**Errores:** `400` datos inválidos o rol no permitido, `409` email ya registrado.
 
-### POST /api/auth/login
+### POST `/api/auth/login`
 
-Login, devuelve JWT. **Auth:** no requiere.
+Login de usuario, devuelve JWT. **Auth:** no requiere.
 
-Registra el evento `LOGIN_EXITOSO` y actualiza `ultimoLogin` del usuario.
+Registra automáticamente el evento `LOGIN_EXITOSO` y actualiza la fecha `ultimoLogin` del usuario para métricas de retención (DAU).
 
-**Body**
+**Body:**
 
 ```json
-{ "email": "sofia@mail.com", "password": "12345678" }
+{
+  "email": "sofia@mail.com",
+  "password": "Password123!"
+}
 ```
 
-**Respuesta 200**
+**Respuesta 200:**
 
 ```json
 {
@@ -98,13 +120,13 @@ Registra el evento `LOGIN_EXITOSO` y actualiza `ultimoLogin` del usuario.
 
 **Errores:** `400` faltan email o contraseña, `401` credenciales incorrectas.
 
-### GET /api/auth/me
+### GET `/api/auth/me`
 
-Devuelve el usuario correspondiente al token enviado. **Auth:** cualquier usuario autenticado.
+Devuelve los datos esenciales del usuario correspondiente al token enviado. **Auth:** cualquier usuario autenticado.
 
 No recibe body.
 
-**Respuesta 200**
+**Respuesta 200:**
 
 ```json
 {
@@ -117,39 +139,110 @@ No recibe body.
 }
 ```
 
-**Errores:** `401` token ausente o inválido, o token de un usuario que ya no existe.
+**Errores:** `401` token ausente o inválido.
 
----
+## 3. Usuarios y Perfil
 
-## 3. Servicios
+### GET `/api/users/me`
 
-### GET /api/servicios
-
-Lista los servicios disponibles en la plataforma. **Auth:** No requiere.
+Devuelve el perfil completo del usuario autenticado. **Auth:** cualquier usuario autenticado (`CLIENTE`, `TECNICO`, `ADMINISTRADOR`).
 
 No recibe body.
 
-**Respuesta 200**
+**Respuesta 200:**
+
+```json
+{
+  "idUsuario": 1,
+  "email": "sofia@mail.com",
+  "nombre": "Sofia",
+  "apellido": "Rodriguez",
+  "rol": "CLIENTE",
+  "numeroTelefono": "1122334455",
+  "fechaCreacion": "2026-10-01T13:00:00.000Z"
+}
+```
+
+**Errores:** `401` no autenticado, `404` usuario no encontrado.
+
+### PATCH `/api/users/me`
+
+Permite al usuario autenticado modificar datos personales de su perfil propio. **Auth:** cualquier usuario autenticado.
+
+**Body:**
+
+```json
+{
+  "nombre": "Sofia Elena",
+  "numeroTelefono": "1199887766"
+}
+```
+
+**Reglas de validación:**
+
+- Al menos uno de los dos campos (`nombre` o `numeroTelefono`) debe enviarse.
+- `nombre`: texto entre 2 y 50 letras alfabéticas sin números ni símbolos.
+- `numeroTelefono`: texto válido entre 8 y 20 caracteres, o `null` / `""` para eliminar el teléfono registrado.
+
+**Respuesta 200:**
+
+```json
+{
+  "idUsuario": 1,
+  "email": "sofia@mail.com",
+  "nombre": "Sofia Elena",
+  "apellido": "Rodriguez",
+  "rol": "CLIENTE",
+  "numeroTelefono": "1199887766"
+}
+```
+
+**Errores:** `400` datos inválidos o body vacío, `401` no autenticado, `404` usuario no encontrado.
+
+## 4. Servicios
+
+### GET `/api/servicios`
+
+Lista los servicios disponibles en la plataforma ordenados alfabéticamente. **Auth:** público (no requiere token).
+
+No recibe body.
+
+**Respuesta 200:**
 
 ```json
 {
   "servicios": [
     {
+      "idServicio": 4,
+      "nombreServicio": "Carpintería",
+      "descripcion": "Muebles, puertas y arreglos en madera"
+    },
+    {
+      "idServicio": 2,
+      "nombreServicio": "Electricidad",
+      "descripcion": "Instalaciones y reparaciones eléctricas"
+    },
+    {
+      "idServicio": 3,
+      "nombreServicio": "Gasista",
+      "descripcion": "Instalación y revisión de artefactos y redes de gas"
+    },
+    {
       "idServicio": 1,
       "nombreServicio": "Plomería",
-      "descripcion": "Reparación de cañerías y grifería"
+      "descripcion": "Reparación e instalación de cañerías y sanitarios"
     }
   ]
 }
 ```
 
-### GET /api/servicios/:id/tecnicos
+### GET `/api/servicios/:id/tecnicos`
 
 Lista los técnicos que ofrecen un servicio dado. **Auth:** administrador.
 
 No recibe body.
 
-**Respuesta 200**
+**Respuesta 200:**
 
 ```json
 {
@@ -163,47 +256,50 @@ No recibe body.
 }
 ```
 
-**Errores:** `404` servicio inexistente.
+**Errores:** `400` id inválido, `404` servicio inexistente.
 
-### POST /api/admin/servicios
+### POST `/api/admin/servicios`
 
-Crea un nuevo servicio. **Auth:** administrador.
+Crea un nuevo servicio en la plataforma. **Auth:** administrador.
 
-**Body**
+**Body:**
 
 ```json
 {
-  "nombreServicio": "Gasista",
-  "descripcion": "Instalación y reparación de gas"
+  "nombreServicio": "Pintura",
+  "descripcion": "Pintura de interiores y exteriores"
 }
 ```
 
-**Respuesta 201**
+**Validaciones:**
+
+- `nombreServicio`: obligatorio, texto hasta 100 caracteres.
+- `descripcion`: obligatorio, texto hasta 500 caracteres.
+
+**Respuesta 201:**
 
 ```json
 {
   "mensaje": "Servicio creado correctamente",
   "servicio": {
     "idServicio": 5,
-    "nombreServicio": "Gasista",
-    "descripcion": "Instalación y reparación de gas"
+    "nombreServicio": "Pintura",
+    "descripcion": "Pintura de interiores y exteriores"
   }
 }
 ```
 
 **Errores:** `400` datos inválidos, `409` ya existe un servicio con ese nombre.
 
----
+## 5. Técnicos
 
-## 4. Técnicos
-
-### GET /api/tecnicos/me/servicios
+### GET `/api/tecnicos/me/servicios`
 
 Lista los servicios que ofrece el técnico autenticado. **Auth:** técnico.
 
 No recibe body.
 
-**Respuesta 200**
+**Respuesta 200:**
 
 ```json
 {
@@ -216,19 +312,17 @@ No recibe body.
 }
 ```
 
----
+## 6. Solicitudes
 
-## 5. Solicitudes
-
-### GET /api/solicitudes
+### GET `/api/solicitudes`
 
 Lista las solicitudes disponibles para aceptar. **Auth:** técnico.
 
-No recibe body; el usuario se identifica por el token. Devuelve únicamente las solicitudes en estado `PENDIENTE`, sin técnico asignado, cuyo servicio ofrece el técnico autenticado (según `TecnicoServicio`), excluyendo las que ese técnico ya rechazó.
+No recibe body; el usuario se identifica por el token. Devuelve únicamente las solicitudes en estado `PENDIENTE`, sin técnico asignado, cuyo servicio ofrece el técnico autenticado (según `TecnicoServicio`), excluyendo aquellas que ese técnico ya rechazó.
 
 Ordenadas de la más reciente a la más antigua.
 
-**Respuesta 200** (lista directa, sin envoltorio)
+**Respuesta 200 (lista directa):**
 
 ```json
 [
@@ -254,26 +348,31 @@ Ordenadas de la más reciente a la más antigua.
 ]
 ```
 
-### POST /api/solicitudes
+### POST `/api/solicitudes`
 
-Crea una solicitud. **Auth:** cliente.
+Crea una solicitud de trabajo. **Auth:** cliente.
 
-**Body**
+**Body:**
 
 ```json
 {
   "idServicio": 1,
   "detalle": "Arreglo de canilla que gotea",
   "direccion": "Av. Rivadavia 4500",
-  "instanciaFormularioId": "form-001"
+  "instanciaFormularioId": "form-001",
+  "sesionId": "sesion-abc123"
 }
 ```
 
-- `idServicio` y `detalle` son obligatorios.
-- `direccion` es opcional por ahora: si no llega, queda como `"Sin especificar"`. Si llega, debe ser un texto no vacío.
-- `instanciaFormularioId` es opcional: texto de hasta 100 caracteres. Es el mismo identificador que el front envía en el evento `SOLICITUD_INICIADA` al abrir el formulario, y se guarda en el evento `SOLICITUD_CREADA` (no en la solicitud). Se usa para medir el abandono del formulario.
+**Reglas de validación:**
 
-**Respuesta 201** (la solicitud directamente, sin envoltorio)
+- `idServicio`: obligatorio, número entero válido existente.
+- `detalle`: obligatorio, texto no vacío de hasta 1000 caracteres.
+- `direccion`: obligatoria, texto no vacío de hasta 200 caracteres (`400` si falta o no es válido).
+- `instanciaFormularioId`: opcional, texto de hasta 100 caracteres. Se asocia al evento `SOLICITUD_CREADA` para medir abandono de formulario.
+- `sesionId`: opcional, texto de hasta 100 caracteres. Se asocia al evento `SOLICITUD_CREADA` para trazabilidad de analítica.
+
+**Respuesta 201:**
 
 ```json
 {
@@ -300,13 +399,13 @@ Crea una solicitud. **Auth:** cliente.
 
 **Errores:** `400` datos inválidos, `404` servicio inexistente.
 
-### GET /api/solicitudes/mias
+### GET `/api/solicitudes/mias`
 
 Lista las solicitudes del cliente autenticado, en cualquier estado, de la más reciente a la más antigua. **Auth:** cliente.
 
 No recibe body.
 
-**Respuesta 200** (lista directa, sin envoltorio)
+**Respuesta 200:**
 
 ```json
 [
@@ -333,15 +432,13 @@ No recibe body.
 ]
 ```
 
-`tecnico` es `null` mientras la solicitud no fue aceptada.
+### GET `/api/solicitudes/asignadas`
 
-### GET /api/solicitudes/asignadas
-
-Lista las solicitudes que el técnico autenticado aceptó, en cualquier estado, de la más recientemente aceptada a la más antigua. **Auth:** técnico.
+Lista las solicitudes que el técnico autenticado aceptó, en cualquier estado, ordenadas por fecha de aceptación más reciente. **Auth:** técnico.
 
 No recibe body.
 
-**Respuesta 200**
+**Respuesta 200:**
 
 ```json
 {
@@ -371,7 +468,7 @@ No recibe body.
 
 ### GET /api/solicitudes/:id
 
-Detalle de una solicitud puntual, incluyendo el estado del rechazo por técnicos. **Auth:** cliente dueño de la solicitud, técnico asignado o que ofrece el servicio, o administrador.
+Detalle de una solicitud puntual, incluyendo el estado del rechazo por técnicos. **Auth**: cliente dueño de la solicitud, técnico asignado, técnico que ofrece el servicio, o administrador.
 
 No recibe body.
 
@@ -407,10 +504,6 @@ No recibe body.
 }
 ```
 
-`tecnico` es `null` mientras la solicitud no fue aceptada.
-
-`rechazos` indica cuántos de los técnicos que ofrecen el servicio ya la rechazaron, sobre el total de técnicos elegibles para ese servicio.
-
 **Errores:** `400` id inválido, `403` el usuario no tiene relación con la solicitud, `404` solicitud inexistente.
 
 ### GET /api/solicitudes/:id/eventos
@@ -421,7 +514,7 @@ Un técnico que solo ofrece el servicio, sin estar asignado, no tiene acceso.
 
 No recibe body.
 
-**Respuesta 200** (para cliente y técnico)
+**Respuesta 200** 
 
 ```json
 {
@@ -493,7 +586,7 @@ Registra el evento `SOLICITUD_ACEPTADA` y completa `fechaAceptacion`.
 }
 ```
 
-**Errores:** `400` id inválido, `403` el técnico no ofrece ese servicio, `404` solicitud inexistente, `409` la solicitud ya no está disponible (no está `PENDIENTE` o ya tiene técnico).
+**Errores:** `400` id inválido, `403` el técnico no ofrece ese servicio, `404` solicitud inexistente, `409` la solicitud ya no está disponible.
 
 ### PATCH /api/solicitudes/:id/rechazar
 
@@ -592,7 +685,7 @@ No recibe body. Solo puede ejecutarse si la solicitud está en `PENDIENTE` o `AC
 
 ---
 
-## 6. Eventos de pantalla
+## 7. Eventos de pantalla
 
 ### POST /api/eventos
 
@@ -625,7 +718,7 @@ Si el request trae un token válido, el evento se guarda con el `idUsuario`; si 
 
 ---
 
-## 7. Administración
+## 8. Administración
 
 ### GET /api/admin/usuarios
 
@@ -667,28 +760,37 @@ No recibe body.
   "solicitudes": [
     {
       "idSolicitud": 3,
+      "detalle": "Arreglo de canilla",
       "estado": "PENDIENTE",
-      "cliente": {
-        "idUsuario": 5,
-        "nombre": "Juan"
-      },
+      "direccion": "Av. Rivadavia 4500",
+      "fechaCreacion": "2026-10-01T13:00:00.000Z",
+      "fechaAceptacion": null,
+      "fechaFinalizacion": null,
+      "servicio": { "idServicio": 1, "nombreServicio": "Plomería" },
+      "cliente": { "idUsuario": 5, "nombre": "Juan", "apellido": "Pérez", "email": "juan@mail.com" },
       "tecnico": null
-    },
-    {
-      "idSolicitud": 4,
-      "estado": "COMPLETADA",
-      "cliente": {
-        "idUsuario": 6,
-        "nombre": "Ana"
-      },
-      "tecnico": {
-        "idUsuario": 8,
-        "nombre": "María"
-      }
     }
   ]
 }
 ```
+
+### PATCH /api/admin/solicitudes/:id/cancelar
+
+El administrador cancela una solicitud. **Auth:** administrador.
+
+No recibe body. Registra el evento `SOLICITUD_CANCELADA`.
+
+**Respuesta 200**
+
+{
+  "mensaje": "Solicitud cancelada",
+  "solicitud": {
+    "idSolicitud": 10,
+    "estado": "CANCELADA"
+  }
+}
+
+**Errores:** `400` id inválido, `404` solicitud inexistente, `409` el estado actual no permite cancelar.
 
 ### GET /api/admin/metricas
 
@@ -709,6 +811,9 @@ No recibe body.
     "liquidity": 80,
     "conversionRegistro": 40,
     "activationRate": 75,
+    "registeredCount": 6,
+    "registrationViewsCount": 10,
+    "requestCount": 6,
     "dau": 35,
     "abandonoSolicitud": {
       "totalIntentos": 20,
@@ -720,20 +825,18 @@ No recibe body.
 }
 ```
 
-Los KPIs que dependen de eventos enviados por el front (`conversionRegistro` y `abandonoSolicitud`) devuelven `null` mientras no haya eventos suficientes para calcularlos.
-
 ---
 
-## 8. Estados y reglas de negocio
+## 9. Estados y reglas de negocio
 
 | Estado | Quién lo produce | Endpoint | Evento que registra |
-|---|---|---|---|
+| :--- | :--- | :--- | :--- |
 | `PENDIENTE` | Cliente | `POST /api/solicitudes` | `SOLICITUD_CREADA` |
 | `ACEPTADA` | Técnico | `PATCH /api/solicitudes/:id/aceptar` | `SOLICITUD_ACEPTADA` |
 | `EN_PROGRESO` | Técnico | `PATCH /api/solicitudes/:id/iniciar` | `SOLICITUD_EN_PROGRESO` |
 | `COMPLETADA` | Técnico | `PATCH /api/solicitudes/:id/completar` | `SOLICITUD_COMPLETADA` |
-| `RECHAZADA` | Sistema | Resultado de `PATCH /api/solicitudes/:id/rechazar` | `SOLICITUD_RECHAZADA` (por cada rechazo individual) |
-| `CANCELADA` | Cliente o técnico | `PATCH /api/solicitudes/:id/cancelar` | `SOLICITUD_CANCELADA` |
+| `RECHAZADA` | Sistema | Resultado de `PATCH /api/solicitudes/:id/rechazar` | `SOLICITUD_RECHAZADA` (individual) |
+| `CANCELADA` | Cliente, técnico o admin | `PATCH /api/solicitudes/:id/cancelar` o `/api/admin/solicitudes/:id/cancelar` | `SOLICITUD_CANCELADA` |
 
 ### Flujo de estados
 
@@ -771,7 +874,7 @@ Si dos usuarios actúan a la vez (por ejemplo, un técnico acepta mientras el cl
 
 ---
 
-## 9. Tipos de evento
+## 10. Tipos de evento
 
 | Evento | Lo registra | Cuándo |
 |---|---|---|
@@ -788,19 +891,20 @@ Si dos usuarios actúan a la vez (por ejemplo, un técnico acepta mientras el cl
 
 ---
 
-## 10. Resumen de endpoints
+## 11. Resumen de endpoints
 
 | Método | Endpoint | Permiso |
 |---|---|---|
 | POST | `/api/auth/register` | Público |
 | POST | `/api/auth/login` | Público |
 | GET | `/api/auth/me` | Autenticado |
+| GET | `/api/users/me` | Autenticado |
+| PATCH | `/api/users/me` | Autenticado |
 | POST | `/api/eventos` | Público (token opcional) |
-| GET | `/api/servicios` | Autenticado |
+| GET | `/api/servicios` | Público |
 | GET | `/api/servicios/:id/tecnicos` | Admin |
-| POST | `/api/admin/servicios` | Admin (si entra en el MVP) |
-| PATCH | `/api/admin/servicios/:id` | Admin (si entra en el MVP) |
-| DELETE | `/api/admin/servicios/:id` | Admin (si entra en el MVP) |
+| POST | `/api/admin/servicios` | Admin |
+| PATCH | /api/admin/solicitudes/:id/cancelar | Administrador |
 | GET | `/api/tecnicos/me/servicios` | Técnico |
 | GET | `/api/solicitudes` | Técnico |
 | POST | `/api/solicitudes` | Cliente |
@@ -815,4 +919,4 @@ Si dos usuarios actúan a la vez (por ejemplo, un técnico acepta mientras el cl
 | PATCH | `/api/solicitudes/:id/cancelar` | Cliente dueño / Técnico asignado |
 | GET | `/api/admin/usuarios` | Admin |
 | GET | `/api/admin/solicitudes` | Admin |
-| GET | `/api/admin/metricas` | Admin (en desarrollo) |
+| GET | `/api/admin/metricas` | Admin |
